@@ -1,7 +1,6 @@
 import { specIt } from "@ksugawara61/spec/vitest";
 import { screen } from "@testing-library/react";
 import { describe, expect } from "vitest";
-import { buildTodo } from "../../test-utils/factories.ts";
 import { renderFeature } from "../../test-utils/render.tsx";
 import { server } from "../../test-utils/server.ts";
 import { TodoList } from "./index.tsx";
@@ -15,12 +14,7 @@ describe("TodoList", () => {
     given: {
       desc: "未完了 1 件・完了 1 件を返す API に向ける",
       run: () => {
-        server.use(
-          ...TodoListMocks.Success([
-            buildTodo({ title: "牛乳を買う" }),
-            buildTodo({ completed: true, title: "ゴミを出す" }),
-          ]),
-        );
+        server.use(...TodoListMocks.Success);
       },
     },
     when: { desc: "表示する", run: renderTodoList },
@@ -52,7 +46,7 @@ describe("TodoList", () => {
     given: {
       desc: "空の一覧を返す API に向ける",
       run: () => {
-        server.use(...TodoListMocks.Success([]));
+        server.use(...TodoListMocks.Empty);
       },
     },
     when: { desc: "表示する", run: renderTodoList },

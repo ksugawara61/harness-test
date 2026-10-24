@@ -41,7 +41,7 @@ src/
 | `index.tsx`      | フィーチャーの入口のコンポーネント。export は 1 つだけ               |
 | `use-service.ts` | フックとロジックをまとめた `useService`                              |
 | `spec.ts`        | `defineSpec` で宣言した仕様。ケースごとに given・when・yields を書く |
-| `mocks.ts`       | テストで使う API のモック                                            |
+| `mocks.ts`       | テストで使う API のモック。`Record<string, HttpHandler[]>` にする    |
 | `test.tsx`       | `spec.ts` の各項目を `specIt` で確かめる仕様テスト                   |
 
 ## 当てている規約
@@ -53,6 +53,7 @@ src/
 | `src/features/**/*.tsx`         | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など |
 | `src/features/*/index.tsx`      | `no-multiple-feature-exports`                                                       |
 | `src/features/*/use-service.ts` | `use-service-handle-only`・`no-raw-setter-return`                                   |
+| `src/features/*/mocks.ts`       | `use-mocks-record`                                                                  |
 | `src/ui/**/*.tsx`               | `no-style-prop-in-ui`・`no-test-id`                                                 |
 | `src/**/test.tsx`               | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など          |
 | `src/**`                        | `max-lines`（300 行）                                                               |
@@ -89,6 +90,9 @@ export const spec = defineSpec("todo-add", {
 `spec.ts` に宣言したのにテストが無いケースや、`spec.ts` に無い仕様 ID を対応付けたテストがあると失敗する。
 
 モックするのは API の境界だけで、MSW で差し替える。
+`mocks.ts` は `{ ... } satisfies Record<string, HttpHandler[]>` にし、値に関数を置かない。
+テストはケース名で引いて `server.use(...TodoListMocks.Success)` と書く。
+メモリ上のストアはテストの間で共有されるため、`setup.ts` が `afterEach` で `resetTodoStores()` を呼んで初期データに戻す。
 子のフィーチャーで確かめた振る舞いは親で確かめない。
 `todo-page` は、追加・完了・削除のあとに一覧が取り直されることだけを確かめる。
 

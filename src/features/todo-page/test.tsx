@@ -1,7 +1,6 @@
 import { specIt } from "@ksugawara61/spec/vitest";
 import { screen } from "@testing-library/react";
 import { describe, expect } from "vitest";
-import { buildTodo } from "../../test-utils/factories.ts";
 import { renderFeature } from "../../test-utils/render.tsx";
 import { server } from "../../test-utils/server.ts";
 import { TodoPage } from "./index.tsx";
@@ -15,7 +14,7 @@ describe("TodoPage", () => {
     given: {
       desc: "空の一覧で表示し、タイトルを入力しておく",
       run: async () => {
-        server.use(...TodoPageMocks.Success([]));
+        server.use(...TodoPageMocks.Empty);
         const { user } = renderFeature(<TodoPage />);
         await screen.findByText("やることはありません");
         await user.type(
@@ -44,9 +43,7 @@ describe("TodoPage", () => {
     given: {
       desc: "未完了のやることが 1 件ある一覧で表示する",
       run: async () => {
-        server.use(
-          ...TodoPageMocks.Success([buildTodo({ title: "牛乳を買う" })]),
-        );
+        server.use(...TodoPageMocks.Success);
         const { user } = renderFeature(<TodoPage />);
         await screen.findByText("残り 1 件");
         return { user };
@@ -69,9 +66,7 @@ describe("TodoPage", () => {
     given: {
       desc: "やることが 1 件ある一覧で表示する",
       run: async () => {
-        server.use(
-          ...TodoPageMocks.Success([buildTodo({ title: "牛乳を買う" })]),
-        );
+        server.use(...TodoPageMocks.Success);
         const { user } = renderFeature(<TodoPage />);
         await screen.findByText("残り 1 件");
         return { user };
