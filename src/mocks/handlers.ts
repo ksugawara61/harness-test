@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { type HttpHandler, http, HttpResponse } from "msw";
 import {
   type CreateTodoInput,
   type Todo,
@@ -8,10 +8,26 @@ import {
 
 type TodoParams = { id: string };
 
+const resetters = new Set<() => void>();
+
+// createTodoHandlers で作ったすべてのストアを初期データに戻す。
+// mocks.ts のハンドラーはテストの間で共有されるため、テストごとに呼ぶ
+export const resetTodoStores = () => {
+  for (const reset of resetters) reset();
+};
+
 // 開発サーバーとテストの両方で使う、メモリ上に TODO を持つ API。
-// 呼び出すたびに別のストアを作るため、テストごとに初期データを分けられる
-export const createTodoHandlers = (initialTodos: Todo[] = []) => {
-  const todos = new Map(initialTodos.map((todo) => [todo.id, todo]));
+// 呼び出すたびに別のストアを作るため、ケースごとに初期データを分けられる
+export const createTodoHandlers = (
+  initialTodos: Todo[] = [],
+): HttpHandler[] => {
+  const todos = new Map<string, Todo>();
+  const reset = () => {
+    todos.clear();
+    for (const todo of initialTodos) todos.set(todo.id, todo);
+  };
+  reset();
+  resetters.add(reset);
 
   return [
     http.get(TODOS_PATH, () => HttpResponse.json([...todos.values()])),

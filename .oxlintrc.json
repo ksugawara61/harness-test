@@ -36,6 +36,12 @@
       }
     },
     {
+      "files": ["src/features/*/mocks.ts"],
+      "rules": {
+        "code-lint/use-mocks-record": "error"
+      }
+    },
+    {
       "files": ["src/ui/**/*.tsx"],
       "rules": {
         "code-lint/no-style-prop-in-ui": "error",

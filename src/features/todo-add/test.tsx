@@ -15,7 +15,7 @@ describe("TodoAdd", () => {
     given: {
       desc: "作成できる API に向けて表示し、タイトルを入力しておく",
       run: async () => {
-        server.use(...TodoAddMocks.Success());
+        server.use(...TodoAddMocks.Success);
         const { user } = renderFeature(<TodoAdd />);
         await user.type(titleField(), "牛乳を買う");
         return { user };
@@ -37,7 +37,7 @@ describe("TodoAdd", () => {
     given: {
       desc: "作成できる API に向けて表示する",
       run: () => {
-        server.use(...TodoAddMocks.Success());
+        server.use(...TodoAddMocks.Success);
         return renderFeature(<TodoAdd />);
       },
     },
