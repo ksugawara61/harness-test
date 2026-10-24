@@ -1,8 +1,8 @@
+import { specIt } from "@ksugawara61/spec/vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { describe, expect } from "vitest";
 import { renderFeature } from "../../test-utils/render.tsx";
 import { server } from "../../test-utils/server.ts";
-import { specIt } from "../../test-utils/spec-it.ts";
 import { TodoAdd } from "./index.tsx";
 import { TodoAddMocks } from "./mocks.ts";
 import { spec } from "./spec.ts";
@@ -11,7 +11,7 @@ const titleField = () => screen.getByRole("textbox", { name: "やること" });
 const addButton = () => screen.getByRole("button", { name: "追加" });
 
 describe("TodoAdd", () => {
-  specIt(spec, "add", {
+  specIt(spec, "submit.ok", {
     given: {
       desc: "作成できる API に向けて表示し、タイトルを入力しておく",
       run: async () => {
@@ -27,11 +27,13 @@ describe("TodoAdd", () => {
     },
     yields: {
       desc: "入力欄が空になる",
-      run: () => waitFor(() => expect(titleField()).toHaveValue("")),
+      run: async () => {
+        await waitFor(() => expect(titleField()).toHaveValue(""));
+      },
     },
   });
 
-  specIt(spec, "blankTitle", {
+  specIt(spec, "validation.blank-title", {
     given: {
       desc: "作成できる API に向けて表示する",
       run: () => {
@@ -45,11 +47,13 @@ describe("TodoAdd", () => {
     },
     yields: {
       desc: "追加ボタンが押せない",
-      run: () => expect(addButton()).toBeDisabled(),
+      run: () => {
+        expect(addButton()).toBeDisabled();
+      },
     },
   });
 
-  specIt(spec, "failure", {
+  specIt(spec, "submit.error", {
     given: {
       desc: "作成に失敗する API に向けて表示し、タイトルを入力しておく",
       run: async () => {
@@ -66,14 +70,17 @@ describe("TodoAdd", () => {
     yields: [
       {
         desc: "エラーを表示する",
-        run: async () =>
+        run: async () => {
           expect(await screen.findByRole("alert")).toHaveTextContent(
             "やることを追加できませんでした",
-          ),
+          );
+        },
       },
       {
         desc: "入力したタイトルが残る",
-        run: () => expect(titleField()).toHaveValue("牛乳を買う"),
+        run: () => {
+          expect(titleField()).toHaveValue("牛乳を買う");
+        },
       },
     ],
   });

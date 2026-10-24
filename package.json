@@ -6,6 +6,7 @@
   },
   "devDependencies": {
     "@ksugawara61/code-lint": "file:vendor/ksugawara61-code-lint-0.1.0.tgz",
+    "@ksugawara61/spec": "file:vendor/ksugawara61-spec-0.1.0.tgz",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
@@ -38,7 +39,7 @@
     "lint": "oxlint && pnpm lint:json",
     "lint:json": "code-lint-sort-json-keys package.json .oxlintrc.json tsconfig.json",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "mkdir -p coverage && vitest run && check-spec-coverage .",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"
