@@ -1,0 +1,62 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./node_modules/@ksugawara61/code-lint/oxlintrc.json"],
+  "ignorePatterns": ["dist"],
+  "options": {
+    "typeAware": true
+  },
+  "overrides": [
+    {
+      "files": ["src/**"],
+      "rules": {
+        "code-lint/max-lines": ["error", { "maxLines": 300 }]
+      }
+    },
+    {
+      "files": ["src/features/**/*.tsx"],
+      "rules": {
+        "code-lint/no-handler-in-component": "error",
+        "code-lint/no-inline-handler-logic": "error",
+        "code-lint/no-test-id": "error",
+        "code-lint/only-use-service-hooks": "error",
+        "code-lint/use-service-single-component": "error"
+      }
+    },
+    {
+      "files": ["src/features/*/index.tsx"],
+      "rules": {
+        "code-lint/no-multiple-feature-exports": "error"
+      }
+    },
+    {
+      "files": ["src/features/*/use-service.ts"],
+      "rules": {
+        "code-lint/no-raw-setter-return": "error",
+        "code-lint/use-service-handle-only": "error"
+      }
+    },
+    {
+      "files": ["src/ui/**/*.tsx"],
+      "rules": {
+        "code-lint/no-style-prop-in-ui": "error",
+        "code-lint/no-test-id": "error"
+      }
+    },
+    {
+      "files": ["src/**/test.tsx"],
+      "rules": {
+        "code-lint/no-event-in-yields": "error",
+        "code-lint/no-expect-in-given-when": "error",
+        "code-lint/no-raw-vitest-test": "error",
+        "code-lint/no-waiting-in-when": "error",
+        "code-lint/use-expression-when": "error"
+      }
+    },
+    {
+      "files": ["oxfmt.config.mts", "vite.config.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    }
+  ]
+}
