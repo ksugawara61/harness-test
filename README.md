@@ -218,7 +218,8 @@ ES モジュールとして読ませたい設定とスクリプトは、`vite.co
 サーバーのリゾルバとは別に、`schema.ts` が `schema.graphql` にモック用のリゾルバを付けて、メモリ上のストア（`context.todos`）を読み書きする。
 サーバーのリゾルバは DB や秘密情報に触れうるため、モックからは import しない。
 `@graphql-tools/mock` の `addMocksToSchema`（`preserveResolvers: true`）を通すため、スキーマに足したフィールドは、リゾルバを書くまで型に合う値が返る。
-`handlers.ts` の `createTodoHandlers` は、すべての操作をこのスキーマで実行する MSW のハンドラーを返す。
+`handlers.ts` の `handlers` は、すべての操作をこのスキーマで実行する MSW のハンドラーで、`pnpm dev:offline` だけが使う。
+テストと story は、フィーチャーの `mocks.ts` が操作ごとに作る、決まった応答を返すハンドラーを使う（「テスト」を参照）。
 
 どこでモックが応答するかは、場面ごとに次のとおり。
 
@@ -251,16 +252,25 @@ const { data, isError, isPending } = useGraphQLQuery(TodosQuery, {
 });
 
 // src/features/todo-page/features/todo-add/service.ts
-const { isError, isPending, mutate } = useGraphQLMutation(CreateTodoMutation, {
-  refetchTypes: ["Todo"],
-});
+const { isError, isPending, mutateAsync } = useGraphQLMutation(
+  CreateTodoMutation,
+  { refetchTypes: ["Todo"] },
+);
+const handleSubmit = async () => {
+  try {
+    await mutateAsync({ input: { title: trimmedTitle } });
+  } catch {
+    return; // 失敗は isError で表示する
+  }
+  setTitle("");
+};
 ```
 
 - query key は、フックが `["graphql", 操作の名前, 変数]` で作る。フィーチャーは query key を持たない
 - mutation が成功すると、`refetchTypes` のどれかの型を返すクエリを取り直す。取り直しが終わるまで `isPending` は `true` のまま
 - クエリが返す型は、キャッシュした結果に含まれる `__typename` と、`useGraphQLQuery` に渡した `typenames` を合わせたもの
 - 一覧のクエリは、空のとき結果から型を拾えないため、`typenames` に型を書く。`TodosQuery` は `__typename` を選ばないため、`typenames: ["Todo"]` を渡している
-- 成功したときだけ行う処理（入力欄を空にするなど）は、`mutate` の第 2 引数の `onSuccess` に書く
+- 成功したときだけ行う処理（入力欄を空にするなど）は、`mutateAsync` を `await` したあとに書く。`onSuccess` は使わない。失敗は `isError` で表示するため、`catch` では何もしない
 
 取り直すクエリを型で選ぶため、mutation を送る `todo-add`・`todo-item` は、一覧のクエリも query key も import しない。
 フィーチャーから `@tanstack/react-query` と `@/lib/gql.ts` を import すると、oxlint の `no-restricted-imports` が落とす。
@@ -394,13 +404,14 @@ export const spec = defineSpec("todo-add", {
 
 モックするのは API の境界だけで、MSW で差し替える。
 `mocks.ts` は `{ ... } satisfies Record<string, RequestHandler[]>` にし、値に関数を置かない。
-失敗や読み込み中のように決まった応答を返すケースは、`src/mocks/graphql.ts` のヘルパーで、同じフィーチャーの `graphqls/` の操作から作る。
+ケースはすべて、`src/mocks/graphql.ts` のヘルパーで、同じフィーチャーの `graphqls/` の操作から作る。
 curio の `@curio/testing-library` の `createMockQuery`・`createMockMutation`・`mockLoadingResolver` にならっている。
 
 | ヘルパー              | 作るもの                                                                            |
 | --------------------- | ----------------------------------------------------------------------------------- |
 | `createMockQuery`     | クエリに応答するハンドラー。resolver が返す `data` は、クエリの結果の型で検査される |
 | `createMockMutation`  | mutation に応答するハンドラー                                                       |
+| `mockDataResolver`    | `data` を返して、操作を成功させる resolver                                          |
 | `mockErrorResolver`   | `errors` を返して、操作を失敗させる resolver                                        |
 | `mockLoadingResolver` | 応答を返さず、読み込み中のままにする resolver                                       |
 
@@ -413,7 +424,12 @@ export const TodoAddMocks = {
       mockErrorResolver("作成に失敗しました"),
     ),
   ],
-  Success: createTodoHandlers(),
+  Success: [
+    createMockMutation(
+      CreateTodoMutation,
+      mockDataResolver({ createTodo: { id: "todo-1" } }),
+    ),
+  ],
 } satisfies Record<string, RequestHandler[]>;
 ```
 
@@ -421,22 +437,44 @@ export const TodoAddMocks = {
 
 fragment を Props で受け取る `todo-item` は、Props に渡す値も `mocks.ts` に `TodoItemFragmentMocks` で置く。
 `maskFragments` で masked にした値を `satisfies Record<string, FragmentOf<typeof TodoItemFragment>>` にし、テストと story では `<TodoItem maskedTodo={TodoItemFragmentMocks.Active} />` と書く。
-親の一覧のモックは、`createTodoHandlers` に初期データを渡すだけでよい。
-モックの API はスキーマでクエリを実行するため、`...TodoItem` のフィールドもスキーマが選んで返す。
+masked にする前の値も `UnmaskedTodoItemFragmentMocks` で export し、親の一覧のモックでは、それと masked の値をスプレッドで重ねる。
 
 ```ts
 // src/features/todo-page/features/todo-list/features/todo-item/mocks.ts
+export const UnmaskedTodoItemFragmentMocks = {
+  /** 未完了の「牛乳を買う」 */
+  Active: buildTodo({ id: "todo-1", title: "牛乳を買う" }),
+  // ...
+} satisfies Record<string, ResultOf<typeof TodoItemFragment>>;
+
 export const TodoItemFragmentMocks = {
   /** 未完了の「牛乳を買う」 */
   Active: maskFragments(
     [TodoItemFragment],
-    buildTodo({ id: "todo-1", title: "牛乳を買う" }),
+    UnmaskedTodoItemFragmentMocks.Active,
   ),
   // ...
 } satisfies Record<string, FragmentOf<typeof TodoItemFragment>>;
+
+// src/features/todo-page/features/todo-list/mocks.ts
+const activeTodo = {
+  ...UnmaskedTodoItemFragmentMocks.Active,
+  ...TodoItemFragmentMocks.Active,
+};
 ```
 
-メモリ上のストアはテストの間で共有されるため、`setup.ts` が `afterEach` で `resetTodoStores()` を呼んで初期データに戻す。
+ハンドラーは状態を持たない。
+mutation のあとに一覧が変わるケースは、最初の応答を `{ once: true }` で 1 回だけにし、取り直したあとの応答を後ろに並べる。
+
+```ts
+// src/features/todo-page/features/todo-list/mocks.ts
+SingleThenDeleted: [
+  createMockQuery(TodosQuery, mockDataResolver({ todos: [activeTodo] }), once),
+  ...TodoItemMocks.Success,
+  createMockQuery(TodosQuery, mockDataResolver({ todos: [] })),
+],
+```
+
 子のフィーチャーで確かめた振る舞いは親で確かめない。
 `todo-page` は、追加・完了・削除のあとに一覧が取り直されることだけを確かめる。
 
@@ -462,7 +500,7 @@ export const Success: Story = {
 ```
 
 - meta に `title` を書かない。ディレクトリから `features/todo-page/features/todo-list` のような名前が付く
-- API は `parameters.msw.handlers` に `mocks.ts` のケースを渡して差し替える。`.storybook/preview.tsx` が story ごとに MSW のハンドラーとメモリ上のストアを入れ替える
+- API は `parameters.msw.handlers` に `mocks.ts` のケースを渡して差し替える。`.storybook/preview.tsx` が story ごとに MSW のハンドラーを入れ替える
 - 読み込み中の表示は、`mockLoadingResolver` で応答を止めたケース（`TodoListMocks.Loading`）を渡して残す
 - QueryClient は `preview.tsx` のデコレーターが story ごとに作る。retry を切っているため、失敗系の表示もすぐに出る
 - 操作しないと出ない表示（送信に失敗した後のエラーなど）は、`play` でその状態まで進める。`play` は表示が出るまで待つだけにし、検証は仕様テストに任せる

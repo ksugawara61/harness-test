@@ -1,6 +1,9 @@
 import type { RequestHandler } from "msw";
-import { createMockMutation, mockErrorResolver } from "@/mocks/graphql.ts";
-import { createTodoHandlers } from "@/mocks/handlers.ts";
+import {
+  createMockMutation,
+  mockDataResolver,
+  mockErrorResolver,
+} from "@/mocks/graphql.ts";
 import { CreateTodoMutation } from "./graphqls/create-todo-mutation.ts";
 
 export const TodoAddMocks = {
@@ -10,5 +13,10 @@ export const TodoAddMocks = {
       mockErrorResolver("作成に失敗しました"),
     ),
   ],
-  Success: createTodoHandlers(),
+  Success: [
+    createMockMutation(
+      CreateTodoMutation,
+      mockDataResolver({ createTodo: { id: "todo-1" } }),
+    ),
+  ],
 } satisfies Record<string, RequestHandler[]>;
