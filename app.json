@@ -2,7 +2,14 @@
   "expo": {
     "name": "やること",
     "platforms": ["web"],
-    "plugins": ["expo-router"],
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "apiRoutes": true
+        }
+      ]
+    ],
     "slug": "harness-test",
     "updates": {
       "enabled": false

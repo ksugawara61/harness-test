@@ -1,5 +1,9 @@
 const MOCK = process.env.EXPO_PUBLIC_API_MOCK;
-const BASE = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8081";
+// web では、ページと同じオリジンの API Route（src/app/api/[...route]+api.ts）に送る
+const BASE =
+  process.env.EXPO_PUBLIC_API_URL ??
+  globalThis.location?.origin ??
+  "http://localhost:8081";
 
 // API への通信はすべてここを通す。
 // EXPO_PUBLIC_API_MOCK=offline のときは、MSW のハンドラーでアプリの中で応答する。

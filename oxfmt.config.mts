@@ -4,7 +4,7 @@ export default {
   ...base,
   ignorePatterns: [
     "pnpm-lock.yaml",
-    "src/graphql/*.generated.ts",
+    "src/server/graphql/*.generated.ts",
     "src/graphql/graphql-env.d.ts",
     "vendor",
   ],

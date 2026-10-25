@@ -10,6 +10,8 @@
     "expo-router": "~58.0.25",
     "gql.tada": "^1.11.4",
     "graphql": "^17.0.2",
+    "graphql-yoga": "^5.24.6",
+    "hono": "^4.13.13",
     "msw": "^3.0.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -53,9 +55,11 @@
   "scripts": {
     "build": "expo export -p web",
     "build:storybook": "storybook build",
-    "codegen": "node scripts/gen-typedefs.ts && graphql-codegen && gql-tada generate output",
-    "codegen:check": "pnpm codegen && git diff --exit-code -- src/graphql && gql-tada check",
-    "dev": "EXPO_PUBLIC_API_MOCK=offline expo start --web",
+    "codegen": "node scripts/gen-typedefs.mts && graphql-codegen && gql-tada generate output",
+    "codegen:check": "pnpm codegen && git diff --exit-code -- src/graphql src/server/graphql && gql-tada check",
+    "dev": "expo start --web",
+    "dev:mock": "EXPO_PUBLIC_API_MOCK=server expo start --web",
+    "dev:offline": "EXPO_PUBLIC_API_MOCK=offline expo start --web",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "knip": "knip",
@@ -67,6 +71,5 @@
     "storybook": "storybook dev -p 6006",
     "test": "mkdir -p coverage && vitest run && check-spec-coverage .",
     "typecheck": "tsc --noEmit"
-  },
-  "type": "module"
+  }
 }

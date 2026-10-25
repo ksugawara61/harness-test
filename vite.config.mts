@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { SpecCoverageReporter } from "@ksugawara61/spec/reporter";
 import { msw } from "msw/vite";
 import { defineConfig } from "vitest/config";
@@ -14,6 +15,12 @@ export default defineConfig({
       { find: "@", replacement: resolve(import.meta.dirname, "src") },
       // Expo の web と同じく、react-native を react-native-web で描画する
       { find: /^react-native$/, replacement: "react-native-web" },
+      // graphql は Vite（development 条件）と Node で別のファイルに解決され、別のモジュールとして読まれる。
+      // Node が node_modules の @graphql-tools・graphql-yoga に読ませるのと同じファイルに揃える
+      {
+        find: /^graphql$/,
+        replacement: fileURLToPath(import.meta.resolve("graphql")),
+      },
     ],
   },
   test: {
@@ -27,9 +34,6 @@ export default defineConfig({
         outputFile: resolve(import.meta.dirname, "coverage/spec-coverage.json"),
       }),
     ],
-    // graphql は Vite と Node で解決先（development 条件の有無）が分かれ、別のモジュールとして読まれる。
-    // @graphql-tools も Vite で解決させ、src と同じ graphql を使わせる
-    server: { deps: { inline: [/@graphql-tools\//] } },
     setupFiles: ["src/test-utils/setup.ts"],
   },
 });

@@ -1,2 +1,2 @@
-// src/graphql/schema.graphql から scripts/gen-typedefs.ts が生成する（編集しない）
+// src/graphql/schema.graphql から scripts/gen-typedefs.mts が生成する（編集しない）
 export const typeDefs = "type Todo {\n  completed: Boolean!\n  id: ID!\n  title: String!\n}\n\ninput CreateTodoInput {\n  title: String!\n}\n\ninput UpdateTodoInput {\n  completed: Boolean!\n  id: ID!\n}\n\ntype Query {\n  todos: [Todo!]!\n}\n\ntype Mutation {\n  createTodo(input: CreateTodoInput!): Todo!\n  deleteTodo(id: ID!): ID!\n  updateTodo(input: UpdateTodoInput!): Todo!\n}\n";

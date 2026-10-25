@@ -3,7 +3,7 @@
   "extends": ["./node_modules/@ksugawara61/code-lint/oxlintrc.json"],
   "ignorePatterns": [
     "dist",
-    "src/graphql/*.generated.ts",
+    "src/server/graphql/*.generated.ts",
     "src/graphql/graphql-env.d.ts"
   ],
   "options": {
@@ -47,6 +47,53 @@
       }
     },
     {
+      "files": [
+        "src/*.ts",
+        "src/*.tsx",
+        "src/api/**",
+        "src/app/*.tsx",
+        "src/graphql/**",
+        "src/lib/**",
+        "src/test-utils/**",
+        "src/ui/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "allowTypeImports": true,
+                "group": ["@/server", "@/server/**"],
+                "message": "src/server はサーバー専用です。クライアントからは import type だけにしてください（API Route の src/app/api と src/server の中は除く）"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/mocks/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "allowTypeImports": true,
+                "group": [
+                  "@/server",
+                  "@/server/**",
+                  "!@/server/graphql/type-defs.generated.ts"
+                ],
+                "message": "src/mocks から src/server の値を import できるのは、リゾルバや秘密情報を含まない type-defs.generated.ts だけです"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["src/features/**"],
       "rules": {
         "code-lint/use-feature-directory": "error",
@@ -58,6 +105,11 @@
               {
                 "group": ["@/app", "@/app/**", "@/route-tree.gen*"],
                 "message": "フィーチャーからルーティング（src/app）を import しないでください。パスのパラメーターはルートのファイルで読み、ページに Props で渡します"
+              },
+              {
+                "allowTypeImports": true,
+                "group": ["@/server", "@/server/**"],
+                "message": "src/server はサーバー専用です。クライアントからは import type だけにしてください（API Route の src/app/api と src/server の中は除く）"
               }
             ]
           }
@@ -132,7 +184,7 @@
         ".storybook/preview.tsx",
         "codegen.ts",
         "oxfmt.config.mts",
-        "vite.config.ts"
+        "vite.config.mts"
       ],
       "rules": {
         "import/no-default-export": "off"
