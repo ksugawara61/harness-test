@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type ChangeEvent, type FormEvent, useState } from "react";
-import { createTodo, todosQueryOptions } from "@/api/todo.ts";
+import { createTodo } from "@/api/todo.ts";
+import { invalidateTodos } from "../../shared/invalidate-todos.ts";
 
 export const useService = () => {
   const [title, setTitle] = useState("");
@@ -9,9 +10,7 @@ export const useService = () => {
     mutationFn: createTodo,
     onSuccess: async () => {
       setTitle("");
-      await queryClient.invalidateQueries({
-        queryKey: todosQueryOptions.queryKey,
-      });
+      await invalidateTodos(queryClient);
     },
   });
   const trimmedTitle = title.trim();

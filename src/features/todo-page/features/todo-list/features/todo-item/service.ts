@@ -1,10 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  deleteTodo,
-  type Todo,
-  todosQueryOptions,
-  updateTodo,
-} from "@/api/todo.ts";
+import { deleteTodo, type Todo, updateTodo } from "@/api/todo.ts";
+import { invalidateTodos } from "../../../../shared/invalidate-todos.ts";
 
 type Params = {
   todo: Todo;
@@ -12,15 +8,14 @@ type Params = {
 
 export const useService = ({ todo }: Params) => {
   const queryClient = useQueryClient();
-  const invalidateTodos = () =>
-    queryClient.invalidateQueries({ queryKey: todosQueryOptions.queryKey });
+  const handleSuccess = () => invalidateTodos(queryClient);
   const toggle = useMutation({
     mutationFn: updateTodo,
-    onSuccess: invalidateTodos,
+    onSuccess: handleSuccess,
   });
   const remove = useMutation({
     mutationFn: deleteTodo,
-    onSuccess: invalidateTodos,
+    onSuccess: handleSuccess,
   });
 
   const handleToggle = () => {

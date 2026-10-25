@@ -35,6 +35,8 @@ src/
   mocks/handlers.ts      # メモリ上に TODO を持つ MSW のハンドラー（開発サーバー・テスト・story で共用）
   features/
     todo-page/           # 画面。追加フォームと一覧を並べる
+      shared/
+        invalidate-todos.ts # todo-add と todo-item で共通の、一覧を取り直すロジック
       features/
         todo-add/        # 追加フォーム
         todo-list/       # 一覧
@@ -60,6 +62,7 @@ export const Route = createFileRoute("/")({ component: TodoPage });
 ページの部品は、ロジックを持てば親の `features/<name>/` にサブフィーチャーとして、ロジックが無ければ親の `components/<name>.tsx` に置く。
 サブフィーチャーの中も同じ構成で、`todo-item` は `todo-list` のサブフィーチャーにしている。
 import は親から直下のサブフィーチャーへの向きだけにし、ページ同士・サブフィーチャー同士では import しない。
+サブフィーチャー間で共通のロジックは、使う側すべてに一番近い共通の親のフィーチャーの `shared/` に置く。
 フィーチャーから `src/app/` や `route-tree.gen.ts` は import しない。
 
 ## import のパス
@@ -76,6 +79,22 @@ import { Alert } from "@/ui/alert/index.tsx"; // ui のレイヤーへは @/ で
 import { TodoItem } from "./features/todo-item/index.tsx"; // 同じフィーチャーの内側は相対パス
 ```
 
+`shared/` の共通ロジックは、一番近い親のフィーチャーの `shared/` から相対パスでだけ import する。
+`todo-add` と `todo-item` は、追加・完了・削除のあとに一覧を取り直す `invalidateTodos` を共通で使う。
+2 つに一番近い共通の親は `todo-page` のため、`todo-page/shared/` に置いている。
+
+```ts
+// src/features/todo-page/features/todo-add/service.ts
+import { invalidateTodos } from "../../shared/invalidate-todos.ts";
+
+// src/features/todo-page/features/todo-list/features/todo-item/service.ts
+import { invalidateTodos } from "../../../../shared/invalidate-todos.ts";
+```
+
+`todo-list` に `shared/` を足すと、`todo-item` から一番近い `shared/` は `todo-list/shared/` になり、`todo-page/shared/` を import できなくなる。
+兄弟の `shared/`（`todo-add` から `todo-list/shared/`）や、features の外からの `shared/` の import もできない。
+`shared/` を `@/features/...` で import しても lint で落ちる。
+
 フィーチャー（サブフィーチャーを含む）のディレクトリには、次のファイルを置く。
 
 | ファイル      | 中身                                                                       |
@@ -91,20 +110,20 @@ import { TodoItem } from "./features/todo-item/index.tsx"; // 同じフィーチ
 
 `.oxlintrc.json` で code-lint の `oxlintrc.json` を `extends` し、規約のルールをパスごとに有効にしている。
 
-| 対象                                              | ルール                                                                               |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `src/app/**`                                      | `no-logic-in-routes`（`useParams`・`useSearch` だけ許す）                            |
-| `src/features/**/*.tsx`                           | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など  |
-| `src/features/**/index.tsx`                       | `no-multiple-feature-exports`                                                        |
-| `src/features/**/index.tsx`・`src/ui/*/index.tsx` | `use-stories-file`                                                                   |
-| `src/**/stories.tsx`                              | `no-storybook-title`                                                                 |
-| `src/features/**`                                 | `use-service-file-name`・`use-feature-directory`・`no-restricted-imports`（`@/app`） |
-| `src/features/**/components/**`                   | `no-logic-in-components`                                                             |
-| `src/features/**/service.ts`                      | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return` |
-| `src/features/**/mocks.ts`                        | `use-mocks-record`                                                                   |
-| `src/ui/**/*.tsx`                                 | `no-style-prop-in-ui`・`no-test-id`                                                  |
-| `src/**/test.tsx`                                 | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など           |
-| `src/**`                                          | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`       |
+| 対象                                              | ルール                                                                                                      |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `src/app/**`                                      | `no-logic-in-routes`（`useParams`・`useSearch` だけ許す）                                                   |
+| `src/features/**/*.tsx`                           | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など                         |
+| `src/features/**/index.tsx`                       | `no-multiple-feature-exports`                                                                               |
+| `src/features/**/index.tsx`・`src/ui/*/index.tsx` | `use-stories-file`                                                                                          |
+| `src/**/stories.tsx`                              | `no-storybook-title`                                                                                        |
+| `src/features/**`                                 | `use-service-file-name`・`use-feature-directory`・`no-restricted-imports`（`@/app`）                        |
+| `src/features/**/components/**`                   | `no-logic-in-components`                                                                                    |
+| `src/features/**/service.ts`                      | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return`                        |
+| `src/features/**/mocks.ts`                        | `use-mocks-record`                                                                                          |
+| `src/ui/**/*.tsx`                                 | `no-style-prop-in-ui`・`no-test-id`                                                                         |
+| `src/**/test.tsx`                                 | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など                                  |
+| `src/**`                                          | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`・`use-nearest-shared-import` |
 
 `src/route-tree.gen.ts` は生成物のため、oxlint・oxfmt・knip の対象から外している。
 `pnpm dev`・`pnpm build`・`pnpm test` のたびに vite プラグインが生成し直す。ルートを足したら、生成し直したファイルもコミットする。

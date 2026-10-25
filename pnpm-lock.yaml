@@ -459,7 +459,7 @@ packages:
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
   '@ksugawara61/code-lint@file:vendor/ksugawara61-code-lint-0.1.0.tgz':
-    resolution: {integrity: sha512-bPRcgWvQoZdq44JNu5M7XoAXoFZlKABsertT6eWEYwkocvmH0EabdDmcNxCmZQvfgkki5XywcU87+NQXWxqLgw==, tarball: file:vendor/ksugawara61-code-lint-0.1.0.tgz}
+    resolution: {integrity: sha512-a2pp56OyGNlWWV8ydvcbHKqXM8oIXGNnMux0moEhj3f9XW6OMC7cMoLy3r9n0rD9j3KImoxZ34xcZBIQdQYDeg==, tarball: file:vendor/ksugawara61-code-lint-0.1.0.tgz}
     version: 0.1.0
     engines: {node: '>=22'}
     hasBin: true
