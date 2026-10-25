@@ -143,6 +143,12 @@
       }
     },
     {
+      "files": ["src/features/**/graphqls/*.ts"],
+      "rules": {
+        "code-lint/use-graphql-operation-file": "error"
+      }
+    },
+    {
       "files": ["src/features/**/mocks.ts"],
       "rules": {
         "code-lint/use-mocks-record": "error"

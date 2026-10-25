@@ -1,6 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { createTodo, todosQueryKey } from "@/api/todo.ts";
+import { todosQueryKey } from "@/api/todo.ts";
+import type { VariablesOf } from "@/graphql/client.ts";
+import { gqlFetch } from "@/lib/gql.ts";
+import { CreateTodoMutation } from "./graphqls/create-todo-mutation.ts";
+
+const createTodo = (input: VariablesOf<typeof CreateTodoMutation>["input"]) =>
+  gqlFetch(CreateTodoMutation, { input });
 
 export const useService = () => {
   const [title, setTitle] = useState("");

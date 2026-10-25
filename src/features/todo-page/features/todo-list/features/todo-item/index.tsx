@@ -4,7 +4,7 @@ import { Button } from "@/ui/button/index.tsx";
 import { Checkbox } from "@/ui/checkbox/index.tsx";
 import { colors } from "@/ui/theme.ts";
 import { TodoError } from "../../../../shared/todo-error/index.tsx";
-import type { TodoItemFragment } from "./fragment.ts";
+import type { TodoItemFragment } from "./graphqls/todo-item-fragment.ts";
 import { useService } from "./service.ts";
 
 type Props = {

@@ -1,9 +1,10 @@
 import { HttpResponse, type RequestHandler } from "msw";
-import { DeleteTodoMutation, UpdateTodoMutation } from "@/api/todo.ts";
 import { type FragmentOf, maskFragments } from "@/graphql/client.ts";
 import { graphqlApi } from "@/mocks/handlers.ts";
 import { buildTodo } from "@/test-utils/factories.ts";
-import { TodoItemFragment } from "./fragment.ts";
+import { DeleteTodoMutation } from "./graphqls/delete-todo-mutation.ts";
+import { TodoItemFragment } from "./graphqls/todo-item-fragment.ts";
+import { UpdateTodoMutation } from "./graphqls/update-todo-mutation.ts";
 
 const errors = [{ message: "更新に失敗しました" }];
 

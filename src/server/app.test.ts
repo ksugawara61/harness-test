@@ -1,12 +1,14 @@
 // @vitest-environment node
-import { print } from "graphql";
 import { describe, expect, it } from "vitest";
-import { CreateTodoMutation, UpdateTodoMutation } from "@/api/todo.ts";
 import { GRAPHQL_PATH } from "@/graphql/client.ts";
 import { app } from "./app.ts";
 
-// 一覧のクエリはフィーチャー（todo-list）が fragment から組み立てるため、ここでは使わずに書く
+// 操作は使うフィーチャーの graphqls/ に置き、サーバーからは import できないため、ここで書く
 const TODOS_QUERY = "query Todos { todos { completed id title } }";
+const CREATE_TODO_MUTATION =
+  "mutation CreateTodo($input: CreateTodoInput!) { createTodo(input: $input) { completed id title } }";
+const UPDATE_TODO_MUTATION =
+  "mutation UpdateTodo($input: UpdateTodoInput!) { updateTodo(input: $input) { id } }";
 
 // サーバーを立てずに、Hono のアプリへ HTTP のリクエストを渡して確かめる
 const post = async (query: string, variables: Record<string, unknown>) => {
@@ -20,7 +22,7 @@ const post = async (query: string, variables: Record<string, unknown>) => {
 
 describe("/api/graphql", () => {
   it("作成したやることを一覧で返す", async () => {
-    const created = await post(print(CreateTodoMutation), {
+    const created = await post(CREATE_TODO_MUTATION, {
       input: { title: "牛乳を買う" },
     });
     const { body } = await post(TODOS_QUERY, {});
@@ -30,7 +32,7 @@ describe("/api/graphql", () => {
   });
 
   it("無いやることを更新すると NOT_FOUND を返す", async () => {
-    const { body } = await post(print(UpdateTodoMutation), {
+    const { body } = await post(UPDATE_TODO_MUTATION, {
       input: { completed: true, id: "missing" },
     });
 

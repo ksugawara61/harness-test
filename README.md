@@ -61,7 +61,7 @@ src/
   lib/
     api.ts               # apiFetch。API への fetch の唯一の入口。モックのときはアプリの中で応答する
     gql.ts               # gqlFetch。gql.tada のドキュメントを送り、data を返す
-  api/todo.ts            # ミューテーション（gql.tada）と、一覧を取り直すときの query key
+  api/todo.ts            # 追加・更新・削除のあとに一覧を取り直すときの query key
   mocks/
     schema.ts            # メモリ上のストアを読み書きするリゾルバと、モックのスキーマ
     handlers.ts          # すべての操作をモックのスキーマで実行する MSW のハンドラー（開発サーバー・テスト・story で共用）
@@ -71,13 +71,19 @@ src/
         todo-error/      # 閉じられるエラーの表示（共有フィーチャー）。todo-add と todo-item で使う
       features/
         todo-add/        # 追加フォーム
+          graphqls/
+            create-todo-mutation.ts
         todo-list/       # 一覧
-          query.ts       # 一覧のクエリ。todo-item の fragment を取り込む
+          graphqls/
+            todos-query.ts # 一覧のクエリ。todo-item の fragment を取り込む
           components/
             todo-remaining.tsx # 未完了の件数（ロジックの無い部品）
           features/
             todo-item/   # 1 件分の完了切り替えと削除
-              fragment.ts # 1 件分の描画に使うフィールドの fragment
+              graphqls/
+                todo-item-fragment.ts   # 1 件分の描画に使うフィールド
+                update-todo-mutation.ts
+                delete-todo-mutation.ts
   ui/                    # 見た目だけを持つ部品（button・text-field・checkbox・alert）。部品ごとに index.tsx と stories.tsx を置く
     theme.ts             # 色。src/index.css の CSS 変数を参照する
   index.css              # 色の CSS 変数（ライト・ダーク）と body の背景
@@ -132,13 +138,26 @@ gql.tada の CLI と TypeScript のプラグインは TypeScript の API を使�
 結果と変数の型はスキーマから付くため、スキーマに無いフィールドを書くと typecheck が落ちる。
 送るのは `src/lib/gql.ts` の `gqlFetch` で、`fetch` は `src/lib/api.ts` の `apiFetch` からしか呼ばない。
 
-クエリで取るフィールドは、harness の `graphql-fragment.md` に従い、使うフィーチャーの横に fragment で書く（fragment colocation）。
-1 件分の描画に使うフィールドは、`todo-item` の `fragment.ts` に書く。
-一覧のクエリは送る側の `todo-list` の `query.ts` に置き、一覧が自分で使うフィールドと `...TodoItem` だけを書く。
-`todo-item` に表示を足すときは、`fragment.ts` だけを直せばよい。
+操作（fragment・query・mutation）は、harness の `graphql.md` に従い、使うフィーチャーの `graphqls/<operation-name>.ts` に 1 操作 1 ファイルで置く。
+ファイル名は種類（`-fragment`・`-query`・`-mutation`）で終え、export は操作 1 つだけで、名前はファイル名の PascalCase にする。
+
+| 操作                 | 置き場所                                     | 使う側                        |
+| -------------------- | -------------------------------------------- | ----------------------------- |
+| `TodoItemFragment`   | `todo-item/graphqls/todo-item-fragment.ts`   | `todo-item` の `readFragment` |
+| `TodosQuery`         | `todo-list/graphqls/todos-query.ts`          | `todo-list` の `useQuery`     |
+| `CreateTodoMutation` | `todo-add/graphqls/create-todo-mutation.ts`  | `todo-add` の `useMutation`   |
+| `UpdateTodoMutation` | `todo-item/graphqls/update-todo-mutation.ts` | `todo-item` の `useMutation`  |
+| `DeleteTodoMutation` | `todo-item/graphqls/delete-todo-mutation.ts` | `todo-item` の `useMutation`  |
+
+`queryOptions` と、`gqlFetch` で操作を送る関数は、`graphqls/` ではなく使うフィーチャーの `service.ts` に書く。
+ミューテーションの結果は使わずに一覧を取り直すため、`id` だけを返させる。
+
+1 件分の描画に使うフィールドは、`todo-item` の fragment に書く（fragment colocation）。
+一覧のクエリには、一覧が自分で使うフィールドと `...TodoItem` だけを書く。
+`todo-item` に表示を足すときは、`todo-item-fragment.ts` だけを直せばよい。
 
 ```ts
-// src/features/todo-page/features/todo-list/features/todo-item/fragment.ts
+// src/features/todo-page/features/todo-list/features/todo-item/graphqls/todo-item-fragment.ts
 export const TodoItemFragment = graphql(`
   fragment TodoItem on Todo {
     completed
@@ -147,7 +166,7 @@ export const TodoItemFragment = graphql(`
   }
 `);
 
-// src/features/todo-page/features/todo-list/query.ts
+// src/features/todo-page/features/todo-list/graphqls/todos-query.ts
 export const TodosQuery = graphql(
   `
     query Todos {
@@ -164,11 +183,12 @@ export const TodosQuery = graphql(
 
 `todo-list` は結果を masked のまま `<TodoItem maskedTodo={todo} />` に渡す。
 `todo-item` は `service.ts` の `useService` の冒頭で `readFragment(TodoItemFragment, maskedTodo)` を呼び、読んだ値を返す。
-`readFragment` に同じディレクトリの `fragment.ts` 以外の fragment を渡すと、oxlint の `use-own-fragment` が落とす。
-`graphql`・`readFragment`・`maskFragments`・`FragmentOf` は、`src/graphql/client.ts` から import する。
+`readFragment` に同じフィーチャーの `graphqls/` 以外の fragment を渡すと、oxlint の `use-own-fragment` が落とす。
+`graphql`・`readFragment`・`maskFragments`・`FragmentOf`・`VariablesOf` は、`src/graphql/client.ts` から import する。
 
-一覧のクエリはサブフィーチャーの fragment を取り込むため、フィーチャーの外の `src/api/` には置けない。
-`src/api/todo.ts` には、`todo-add`・`todo-item` が使うミューテーションと、追加・更新・削除のあとに一覧を取り直すための `todosQueryKey` を置く。
+`src/api/todo.ts` には、操作を置かない。
+`todo-add`・`todo-item` が追加・更新・削除のあとに一覧を取り直すための `todosQueryKey` だけを置く。
+`src/server/app.test.ts` は、フィーチャーの `graphqls/` を import できないため、確かめる操作を文字列で書く。
 
 サーバーは、`src/app/api/[...route]+api.ts` がすべてのメソッドを `src/server/app.ts` の Hono のアプリに渡す。
 ルーティングは Hono の側だけで書き、Expo の `+api.ts` や `+middleware.ts` は足さない。
@@ -253,8 +273,7 @@ import { TodoError } from "../../../../shared/todo-error/index.tsx";
 | `service.ts`  | フックとロジックをまとめた `useService`                                       |
 | `spec.ts`     | `defineSpec` で宣言した仕様。ケースごとに given・when・yields を書く          |
 | `mocks.ts`    | テストと story で使う API のモック。`Record<string, RequestHandler[]>` にする |
-| `fragment.ts` | Props で受け取るデータの fragment（クエリの結果を受け取るフィーチャーだけ）   |
-| `query.ts`    | フィーチャーが送るクエリと queryOptions（クエリを送るフィーチャーだけ）       |
+| `graphqls/`   | フィーチャーが使う GraphQL の操作。1 操作 1 ファイル（`<operation-name>.ts`） |
 | `test.tsx`    | `spec.ts` の各項目を `specIt` で確かめる仕様テスト                            |
 | `stories.tsx` | Storybook の story。`mocks.ts` のケースごとに表示を並べる                     |
 
@@ -270,6 +289,7 @@ import { TodoError } from "../../../../shared/todo-error/index.tsx";
 | `src/features/**/index.tsx`・`src/ui/*/index.tsx`     | `use-stories-file`                                                                                                   |
 | `src/**/stories.tsx`                                  | `no-storybook-title`                                                                                                 |
 | `src/features/**`                                     | `use-service-file-name`・`use-feature-directory`・`use-own-fragment`・`no-restricted-imports`（`@/app`・`@/server`） |
+| `src/features/**/graphqls/*.ts`                       | `use-graphql-operation-file`                                                                                         |
 | `src/api/**` などクライアントのコード・`src/mocks/**` | `no-restricted-imports`（`@/server` は `import type` だけ。`src/mocks/**` は `type-defs.generated.ts` も許す）       |
 | `src/features/**/components/**`                       | `no-logic-in-components`                                                                                             |
 | `src/features/**/service.ts`                          | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return`                                 |
@@ -343,7 +363,7 @@ export const spec = defineSpec("todo-add", {
 
 モックするのは API の境界だけで、MSW で差し替える。
 `mocks.ts` は `{ ... } satisfies Record<string, RequestHandler[]>` にし、値に関数を置かない。
-失敗するケースは、`src/mocks/handlers.ts` の `graphqlApi` に操作（`src/api/todo.ts` のミューテーションや `query.ts` のクエリ）を渡し、`errors` を返すハンドラーにする。
+失敗するケースは、`src/mocks/handlers.ts` の `graphqlApi` に同じフィーチャーの `graphqls/` の操作を渡し、`errors` を返すハンドラーにする。
 
 ```ts
 // src/features/todo-page/features/todo-add/mocks.ts
