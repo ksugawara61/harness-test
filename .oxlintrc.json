@@ -9,7 +9,13 @@
     {
       "files": ["src/**"],
       "rules": {
-        "code-lint/max-lines": ["error", { "maxLines": 300 }]
+        "code-lint/max-lines": [
+          "error",
+          {
+            "maxLines": 300
+          }
+        ],
+        "code-lint/no-cross-feature-import": "error"
       }
     },
     {
@@ -25,30 +31,37 @@
     {
       "files": ["src/features/**"],
       "rules": {
+        "code-lint/use-feature-directory": "error",
         "code-lint/use-service-file-name": "error"
       }
     },
     {
-      "files": ["src/features/*/index.tsx"],
+      "files": ["src/features/**/components/**"],
+      "rules": {
+        "code-lint/no-logic-in-components": "error"
+      }
+    },
+    {
+      "files": ["src/features/**/index.tsx"],
       "rules": {
         "code-lint/no-multiple-feature-exports": "error"
       }
     },
     {
-      "files": ["src/features/*/service.ts"],
+      "files": ["src/features/**/service.ts"],
       "rules": {
         "code-lint/no-raw-setter-return": "error",
         "code-lint/use-service-handle-only": "error"
       }
     },
     {
-      "files": ["src/features/*/mocks.ts"],
+      "files": ["src/features/**/mocks.ts"],
       "rules": {
         "code-lint/use-mocks-record": "error"
       }
     },
     {
-      "files": ["src/features/*/index.tsx", "src/ui/*/index.tsx"],
+      "files": ["src/features/**/index.tsx", "src/ui/*/index.tsx"],
       "rules": {
         "code-lint/use-stories-file": "error"
       }

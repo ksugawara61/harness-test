@@ -1,5 +1,5 @@
-import { TodoAdd } from "../todo-add/index.tsx";
-import { TodoList } from "../todo-list/index.tsx";
+import { TodoAdd } from "./features/todo-add/index.tsx";
+import { TodoList } from "./features/todo-list/index.tsx";
 
 export const TodoPage = () => (
   <main className="todo-page">

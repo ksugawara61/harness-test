@@ -1,5 +1,6 @@
-import { Alert } from "../../ui/alert/index.tsx";
-import { TodoItem } from "../todo-item/index.tsx";
+import { Alert } from "../../../../ui/alert/index.tsx";
+import { TodoRemaining } from "./components/todo-remaining.tsx";
+import { TodoItem } from "./features/todo-item/index.tsx";
 import { useService } from "./service.ts";
 
 export const TodoList = () => {
@@ -16,7 +17,7 @@ export const TodoList = () => {
           <TodoItem key={todo.id} todo={todo} />
         ))}
       </ul>
-      <p className="todo-list__remaining">残り {remainingCount} 件</p>
+      <TodoRemaining count={remainingCount} />
     </section>
   );
 };

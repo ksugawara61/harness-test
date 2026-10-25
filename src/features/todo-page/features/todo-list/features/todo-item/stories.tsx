@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { userEvent } from "storybook/test";
-import { buildTodo } from "../../test-utils/factories.ts";
+import { buildTodo } from "../../../../../../test-utils/factories.ts";
 import { TodoItem } from "./index.tsx";
 import { TodoItemMocks } from "./mocks.ts";
 
