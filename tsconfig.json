@@ -30,7 +30,6 @@
   "extends": "expo/tsconfig.base",
   "include": [
     ".storybook",
-    "codegen.ts",
     "oxfmt.config.mts",
     "scripts",
     "src",

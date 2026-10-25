@@ -5,7 +5,7 @@ import {
   insertTodo,
   updateTodo,
 } from "@/server/repositories/todo.ts";
-import type { Resolvers } from "./resolvers.generated.ts";
+import type { Resolvers } from "./types.ts";
 
 const notFound = (id: string) =>
   new GraphQLError(`やること ${id} が見つかりません`, {

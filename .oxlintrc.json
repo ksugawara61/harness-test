@@ -192,7 +192,6 @@
         ".dependency-cruiser.mjs",
         ".storybook/main.ts",
         ".storybook/preview.tsx",
-        "codegen.ts",
         "oxfmt.config.mts",
         "vite.config.mts"
       ],

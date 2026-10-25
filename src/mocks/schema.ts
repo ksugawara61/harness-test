@@ -1,8 +1,8 @@
 import { addMocksToSchema } from "@graphql-tools/mock";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { GraphQLError } from "graphql";
-import type { Resolvers, Todo } from "@/server/graphql/resolvers.generated.ts";
 import { typeDefs } from "@/server/graphql/type-defs.generated.ts";
+import type { Resolvers, Todo } from "@/server/graphql/types.ts";
 
 type MockContext = {
   todos: Map<string, Todo>;
