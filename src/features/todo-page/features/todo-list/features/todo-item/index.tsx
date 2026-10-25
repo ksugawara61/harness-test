@@ -1,7 +1,7 @@
 import type { Todo } from "@/api/todo.ts";
-import { Alert } from "@/ui/alert/index.tsx";
 import { Button } from "@/ui/button/index.tsx";
 import { Checkbox } from "@/ui/checkbox/index.tsx";
+import { TodoError } from "../../../../shared/todo-error/index.tsx";
 import { useService } from "./service.ts";
 
 type Props = {
@@ -29,7 +29,7 @@ export const TodoItem = ({ todo }: Props) => {
       >
         削除
       </Button>
-      {isError && <Alert>やることを更新できませんでした</Alert>}
+      {isError && <TodoError>やることを更新できませんでした</TodoError>}
     </li>
   );
 };
