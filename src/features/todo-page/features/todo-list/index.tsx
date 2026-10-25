@@ -1,4 +1,4 @@
-import { Alert } from "../../../../ui/alert/index.tsx";
+import { Alert } from "@/ui/alert/index.tsx";
 import { TodoRemaining } from "./components/todo-remaining.tsx";
 import { TodoItem } from "./features/todo-item/index.tsx";
 import { useService } from "./service.ts";

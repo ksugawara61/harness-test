@@ -1,6 +1,6 @@
-import { Alert } from "../../../../ui/alert/index.tsx";
-import { Button } from "../../../../ui/button/index.tsx";
-import { TextField } from "../../../../ui/text-field/index.tsx";
+import { Alert } from "@/ui/alert/index.tsx";
+import { Button } from "@/ui/button/index.tsx";
+import { TextField } from "@/ui/text-field/index.tsx";
 import { useService } from "./service.ts";
 
 export const TodoAdd = () => {

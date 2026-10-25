@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "extends": ["./node_modules/@ksugawara61/code-lint/oxlintrc.json"],
-  "ignorePatterns": ["dist"],
+  "ignorePatterns": ["dist", "src/route-tree.gen.ts"],
   "options": {
     "typeAware": true
   },
@@ -15,7 +15,19 @@
             "maxLines": 300
           }
         ],
-        "code-lint/no-cross-feature-import": "error"
+        "code-lint/no-cross-feature-import": "error",
+        "code-lint/no-relative-cross-boundary": "error"
+      }
+    },
+    {
+      "files": ["src/app/**"],
+      "rules": {
+        "code-lint/no-logic-in-routes": [
+          "error",
+          {
+            "allowHooks": ["useParams", "useSearch"]
+          }
+        ]
       }
     },
     {
@@ -32,7 +44,18 @@
       "files": ["src/features/**"],
       "rules": {
         "code-lint/use-feature-directory": "error",
-        "code-lint/use-service-file-name": "error"
+        "code-lint/use-service-file-name": "error",
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/app", "@/app/**", "@/route-tree.gen*"],
+                "message": "フィーチャーからルーティング（src/app）を import しないでください。パスのパラメーターはルートのファイルで読み、ページに Props で渡します"
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -51,6 +74,12 @@
       "files": ["src/features/**/service.ts"],
       "rules": {
         "code-lint/no-raw-setter-return": "error",
+        "code-lint/no-router-in-use-service-return": [
+          "error",
+          {
+            "hooks": ["useNavigate", "useRouter"]
+          }
+        ],
         "code-lint/use-service-handle-only": "error"
       }
     },

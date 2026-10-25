@@ -1,5 +1,5 @@
 import { type HttpHandler, http, HttpResponse } from "msw";
-import { TODOS_PATH } from "../../../../../../api/todo.ts";
+import { TODOS_PATH } from "@/api/todo.ts";
 
 const failure = () => new HttpResponse(null, { status: 500 });
 

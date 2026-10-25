@@ -4,7 +4,7 @@ import {
   type Todo,
   todosQueryOptions,
   updateTodo,
-} from "../../../../../../api/todo.ts";
+} from "@/api/todo.ts";
 
 type Params = {
   todo: Todo;

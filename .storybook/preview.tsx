@@ -2,9 +2,9 @@ import type { Decorator, Preview } from "@storybook/react-vite";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { HttpHandler } from "msw";
 import { network } from "virtual:msw";
-import "../src/index.css";
-import { resetTodoStores } from "../src/mocks/handlers.ts";
-import { createTestQueryClient } from "../src/test-utils/query-client.ts";
+import "@/index.css";
+import { resetTodoStores } from "@/mocks/handlers.ts";
+import { createTestQueryClient } from "@/test-utils/query-client.ts";
 
 type MswParameters = { handlers?: HttpHandler[] } | undefined;
 

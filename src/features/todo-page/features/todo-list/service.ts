@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { todosQueryOptions } from "../../../../api/todo.ts";
+import { todosQueryOptions } from "@/api/todo.ts";
 
 export const useService = () => {
   const { data: todos = [], isError, isPending } = useQuery(todosQueryOptions);
