@@ -1,1 +1,4 @@
+# esbuild の postinstall はバイナリの確認だけで、バイナリは optionalDependencies で入るため実行しない
+allowBuilds:
+  esbuild: false
 minimumReleaseAge: 4320

@@ -17,5 +17,5 @@
     "types": ["msw/vite/client", "node", "vite/client"],
     "verbatimModuleSyntax": true
   },
-  "include": ["oxfmt.config.mts", "src", "vite.config.ts"]
+  "include": [".storybook", "oxfmt.config.mts", "src", "vite.config.ts"]
 }

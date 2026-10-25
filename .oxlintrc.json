@@ -48,6 +48,19 @@
       }
     },
     {
+      "files": ["src/features/*/index.tsx", "src/ui/*/index.tsx"],
+      "rules": {
+        "code-lint/use-stories-file": "error"
+      }
+    },
+    {
+      "files": ["src/**/stories.tsx"],
+      "rules": {
+        "code-lint/no-storybook-title": "error",
+        "import/no-default-export": "off"
+      }
+    },
+    {
       "files": ["src/ui/**/*.tsx"],
       "rules": {
         "code-lint/no-style-prop-in-ui": "error",
@@ -65,7 +78,12 @@
       }
     },
     {
-      "files": ["oxfmt.config.mts", "vite.config.ts"],
+      "files": [
+        ".storybook/main.ts",
+        ".storybook/preview.tsx",
+        "oxfmt.config.mts",
+        "vite.config.ts"
+      ],
       "rules": {
         "import/no-default-export": "off"
       }

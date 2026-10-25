@@ -1,7 +1,7 @@
 import type { Todo } from "../../api/todo.ts";
-import { Alert } from "../../ui/alert.tsx";
-import { Button } from "../../ui/button.tsx";
-import { Checkbox } from "../../ui/checkbox.tsx";
+import { Alert } from "../../ui/alert/index.tsx";
+import { Button } from "../../ui/button/index.tsx";
+import { Checkbox } from "../../ui/checkbox/index.tsx";
 import { useService } from "./service.ts";
 
 type Props = {
