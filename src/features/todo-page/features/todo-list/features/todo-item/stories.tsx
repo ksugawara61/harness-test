@@ -1,12 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-native-web-vite";
 import { View } from "react-native";
 import { userEvent } from "storybook/test";
-import { buildTodo } from "@/test-utils/factories.ts";
 import { TodoItem } from "./index.tsx";
-import { TodoItemMocks } from "./mocks.ts";
+import { TodoItemFragmentMocks, TodoItemMocks } from "./mocks.ts";
 
 const meta = {
-  args: { todo: buildTodo({ id: "todo-1", title: "牛乳を買う" }) },
+  args: { maskedTodo: TodoItemFragmentMocks.Active },
   component: TodoItem,
   // TodoItem は一覧の 1 行のため、一覧（role="list"）の中に描画する
   decorators: [
@@ -25,9 +24,7 @@ type Story = StoryObj<typeof meta>;
 export const Active: Story = {};
 
 export const Completed: Story = {
-  args: {
-    todo: buildTodo({ completed: true, id: "todo-1", title: "ゴミを出す" }),
-  },
+  args: { maskedTodo: TodoItemFragmentMocks.Completed },
 };
 
 // 更新に失敗した後の表示は操作しないと出ないため、play で完了を切り替える

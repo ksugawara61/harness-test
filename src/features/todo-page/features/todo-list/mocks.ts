@@ -1,7 +1,7 @@
 import { HttpResponse, type RequestHandler } from "msw";
-import { TodosQuery } from "@/api/todo.ts";
 import { createTodoHandlers, graphqlApi } from "@/mocks/handlers.ts";
 import { buildTodo } from "@/test-utils/factories.ts";
+import { TodosQuery } from "./graphqls/todos-query.ts";
 
 export const TodoListMocks = {
   /** 空の一覧を返す */

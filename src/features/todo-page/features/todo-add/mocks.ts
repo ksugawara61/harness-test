@@ -1,6 +1,6 @@
 import { HttpResponse, type RequestHandler } from "msw";
-import { CreateTodoMutation } from "@/api/todo.ts";
 import { createTodoHandlers, graphqlApi } from "@/mocks/handlers.ts";
+import { CreateTodoMutation } from "./graphqls/create-todo-mutation.ts";
 
 export const TodoAddMocks = {
   Error: [

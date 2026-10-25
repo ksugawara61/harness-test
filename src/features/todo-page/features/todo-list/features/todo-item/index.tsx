@@ -1,25 +1,34 @@
 import { StyleSheet, View } from "react-native";
-import type { Todo } from "@/api/todo.ts";
+import type { FragmentOf } from "@/graphql/client.ts";
 import { Button } from "@/ui/button/index.tsx";
 import { Checkbox } from "@/ui/checkbox/index.tsx";
 import { colors } from "@/ui/theme.ts";
 import { TodoError } from "../../../../shared/todo-error/index.tsx";
+import type { TodoItemFragment } from "./graphqls/todo-item-fragment.ts";
 import { useService } from "./service.ts";
 
 type Props = {
-  todo: Todo;
+  // 一覧のクエリの 1 件を masked のまま受け取り、service.ts で readFragment する
+  maskedTodo: FragmentOf<typeof TodoItemFragment>;
 };
 
-export const TodoItem = ({ todo }: Props) => {
-  const { deleteLabel, handleDelete, handleToggle, isError, isPending } =
-    useService({ todo });
+export const TodoItem = ({ maskedTodo }: Props) => {
+  const {
+    completed,
+    deleteLabel,
+    handleDelete,
+    handleToggle,
+    isError,
+    isPending,
+    title,
+  } = useService({ maskedTodo });
 
   return (
     <View role="listitem" style={styles.item}>
       <Checkbox
-        checked={todo.completed}
+        checked={completed}
         disabled={isPending}
-        label={todo.title}
+        label={title}
         onChange={handleToggle}
       />
       <Button

@@ -1,5 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
-import { todosQueryOptions } from "@/api/todo.ts";
+import { queryOptions, useQuery } from "@tanstack/react-query";
+import { todosQueryKey } from "@/api/todo.ts";
+import { gqlFetch } from "@/lib/gql.ts";
+import { TodosQuery } from "./graphqls/todos-query.ts";
+
+const todosQueryOptions = queryOptions({
+  queryFn: async () => {
+    const { todos } = await gqlFetch(TodosQuery, {});
+    return todos;
+  },
+  queryKey: todosQueryKey,
+});
 
 export const useService = () => {
   const { data: todos = [], isError, isPending } = useQuery(todosQueryOptions);

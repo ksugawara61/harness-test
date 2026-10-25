@@ -97,6 +97,7 @@
       "files": ["src/features/**"],
       "rules": {
         "code-lint/use-feature-directory": "error",
+        "code-lint/use-own-fragment": "error",
         "code-lint/use-service-file-name": "error",
         "no-restricted-imports": [
           "error",
@@ -139,6 +140,12 @@
           }
         ],
         "code-lint/use-service-handle-only": "error"
+      }
+    },
+    {
+      "files": ["src/features/**/graphqls/*.ts"],
+      "rules": {
+        "code-lint/use-graphql-operation-file": "error"
       }
     },
     {

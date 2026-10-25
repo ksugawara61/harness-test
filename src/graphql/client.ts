@@ -10,4 +10,5 @@ export const graphql = initGraphQLTada<{
   scalars: { ID: string };
 }>();
 
-export type { ResultOf, VariablesOf } from "gql.tada";
+export { maskFragments, readFragment } from "gql.tada";
+export type { FragmentOf, VariablesOf } from "gql.tada";
