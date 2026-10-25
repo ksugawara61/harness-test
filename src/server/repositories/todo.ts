@@ -1,4 +1,4 @@
-import type { Todo } from "@/server/graphql/resolvers.generated.ts";
+import type { Todo } from "@/server/graphql/types.ts";
 
 // PoC のため、データはサーバーのプロセスのメモリに持つ（再起動すると消える）。
 // DB に移すときは、このファイルの関数の中身だけを差し替える。

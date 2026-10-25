@@ -36,7 +36,6 @@ EAS Hosting などのサーバーに載せるか、API ごとアプリの中に�
 ```text
 .storybook/              # Storybook の設定。preview で QueryClient と MSW を story ごとに用意する
 app.json                 # Expo の設定。web.output: "static" と expo-router の apiRoutes: true で、HTML の事前生成と API Route を両立する
-codegen.ts               # graphql-codegen の設定（サーバーとモックのリゾルバの型）
 scripts/gen-typedefs.mts # schema.graphql から SDL の文字列を生成する
 src/
   app/                   # ルーティング（Expo Router の file-based routing）。ページを描画するだけ
@@ -52,7 +51,7 @@ src/
       schema.ts          # makeExecutableSchema。EXPO_PUBLIC_API_MOCK=server のときは自動のモックを足す
       resolvers.ts       # リゾルバ。データは repositories から読み書きする
       type-defs.generated.ts  # SDL の文字列（生成物）
-      resolvers.generated.ts  # リゾルバの型（生成物）
+      types.ts           # リゾルバと Todo の型。graphql-env.d.ts の introspection から導く
     repositories/todo.ts # TODO のストア（PoC のためメモリ上）。DB に移すときはここだけを差し替える
   graphql/               # クライアント・サーバー・モックが共有する GraphQL の契約
     schema.graphql       # 唯一の手書きのスキーマ
@@ -120,14 +119,17 @@ import は親から直下のサブフィーチャーへの向きだけにし、�
 
 ## GraphQL とモック
 
-スキーマは `src/graphql/schema.graphql` だけに手で書き、そこから `pnpm codegen` で次の 3 つを生成する。
+スキーマは `src/graphql/schema.graphql` だけに手で書き、そこから `pnpm codegen` で次の 2 つを生成する。
 生成物はコミットし、手で編集しない。CI の `pnpm codegen:check` が、スキーマとの食い違いを落とす。
 
-| 生成物                                      | 作るもの                        | 使う側                                                   |
-| ------------------------------------------- | ------------------------------- | -------------------------------------------------------- |
-| `src/graphql/graphql-env.d.ts`              | gql.tada の型（introspection）  | `src/graphql/client.ts` の `graphql`                     |
-| `src/server/graphql/type-defs.generated.ts` | SDL の文字列                    | `src/server/graphql/schema.ts`・`src/mocks/schema.ts`    |
-| `src/server/graphql/resolvers.generated.ts` | リゾルバの型（graphql-codegen） | `src/server/graphql/resolvers.ts`・`src/mocks/schema.ts` |
+| 生成物                                      | 作るもの                       | 使う側                                                              |
+| ------------------------------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| `src/graphql/graphql-env.d.ts`              | gql.tada の型（introspection） | `src/graphql/client.ts` の `graphql`・`src/server/graphql/types.ts` |
+| `src/server/graphql/type-defs.generated.ts` | SDL の文字列                   | `src/server/graphql/schema.ts`・`src/mocks/schema.ts`               |
+
+サーバーとモックのリゾルバの型（`src/server/graphql/types.ts`）は、`graphql-env.d.ts` の introspection から導く。
+introspection はフィールドの引数を持たないため、引数の型だけは `types.ts` の `FieldArgs` に手で書く。
+Query・Mutation にフィールドを足して `FieldArgs` に書き漏らすと typecheck が落ちる。
 
 SDL は文字列の TS モジュールにして渡し、サーバーで `.graphql` を実行時に読み込まない（Workers などでは `fs` が使えず、Metro・Vitest にも個別の設定が要るため）。
 

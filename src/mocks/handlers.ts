@@ -1,6 +1,6 @@
 import { graphql as execute } from "graphql";
 import { HttpResponse, type RequestHandler } from "msw";
-import type { Todo } from "@/server/graphql/resolvers.generated.ts";
+import type { Todo } from "@/server/graphql/types.ts";
 import { graphqlApi } from "./graphql.ts";
 import { mockSchema } from "./schema.ts";
 

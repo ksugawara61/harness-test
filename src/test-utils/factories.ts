@@ -1,4 +1,4 @@
-import type { Todo } from "@/server/graphql/resolvers.generated.ts";
+import type { Todo } from "@/server/graphql/types.ts";
 
 // fragment のモックに渡す、サーバーの Todo
 export const buildTodo = (overrides?: Partial<Todo>): Todo => ({
