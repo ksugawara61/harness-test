@@ -1,0 +1,5 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // TanStack Router が生成するルートの木。使わない型も export するため、指摘の対象から外す
+  "ignore": ["src/route-tree.gen.ts"],
+}

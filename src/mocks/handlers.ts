@@ -4,7 +4,7 @@ import {
   type Todo,
   TODOS_PATH,
   type UpdateTodoInput,
-} from "../api/todo.ts";
+} from "@/api/todo.ts";
 
 type TodoParams = { id: string };
 

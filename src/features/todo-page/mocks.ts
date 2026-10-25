@@ -1,6 +1,6 @@
 import type { HttpHandler } from "msw";
-import { createTodoHandlers } from "../../mocks/handlers.ts";
-import { buildTodo } from "../../test-utils/factories.ts";
+import { createTodoHandlers } from "@/mocks/handlers.ts";
+import { buildTodo } from "@/test-utils/factories.ts";
 
 export const TodoPageMocks = {
   /** 空の一覧から始まる */

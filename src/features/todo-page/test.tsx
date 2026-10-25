@@ -1,8 +1,8 @@
 import { specIt } from "@ksugawara61/spec/vitest";
 import { screen } from "@testing-library/react";
 import { describe, expect } from "vitest";
-import { renderFeature } from "../../test-utils/render.tsx";
-import { server } from "../../test-utils/server.ts";
+import { renderFeature } from "@/test-utils/render.tsx";
+import { server } from "@/test-utils/server.ts";
 import { TodoPage } from "./index.tsx";
 import { TodoPageMocks } from "./mocks.ts";
 import { spec } from "./spec.ts";

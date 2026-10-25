@@ -12,7 +12,7 @@ type StoryFile = { default: Meta } & Record<string, StoryObj>;
 
 // preview は virtual:msw でブラウザの MSW を動かす。テストでは msw/node の server に向ける
 vi.mock("virtual:msw", async () => {
-  const { server } = await import("./test-utils/server.ts");
+  const { server } = await import("@/test-utils/server.ts");
   return {
     network: {
       enable: () => undefined,
