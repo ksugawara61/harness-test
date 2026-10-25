@@ -2,3 +2,5 @@ node_modules
 dist
 coverage
 storybook-static
+.expo
+expo-env.d.ts

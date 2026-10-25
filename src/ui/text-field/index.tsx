@@ -1,9 +1,11 @@
-import type { ChangeEvent } from "react";
+import { StyleSheet, TextInput } from "react-native";
+import { colors, fontFamily } from "../theme.ts";
 
 type Props = {
   disabled?: boolean;
   label: string;
-  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onChangeText: (text: string) => void;
+  onSubmit?: () => void;
   placeholder?: string;
   value: string;
 };
@@ -11,19 +13,35 @@ type Props = {
 export const TextField = ({
   disabled = false,
   label,
-  onChange,
+  onChangeText,
+  onSubmit,
   placeholder,
   value,
 }: Props) => (
-  <label className="text-field">
-    <span className="visually-hidden">{label}</span>
-    <input
-      className="text-field__input"
-      disabled={disabled}
-      onChange={onChange}
-      placeholder={placeholder}
-      type="text"
-      value={value}
-    />
-  </label>
+  <TextInput
+    aria-disabled={disabled}
+    aria-label={label}
+    editable={!disabled}
+    onChangeText={onChangeText}
+    onSubmitEditing={onSubmit}
+    placeholder={placeholder}
+    placeholderTextColor={colors.muted}
+    style={styles.input}
+    value={value}
+  />
 );
+
+const styles = StyleSheet.create({
+  input: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 6,
+    borderWidth: 1,
+    color: colors.text,
+    flexGrow: 1,
+    fontFamily,
+    fontSize: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+});

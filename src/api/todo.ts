@@ -1,61 +1,67 @@
 import { queryOptions } from "@tanstack/react-query";
+import { graphql, type ResultOf, type VariablesOf } from "@/graphql/client.ts";
+import { gqlFetch } from "@/lib/gql.ts";
 
-export type Todo = {
-  completed: boolean;
-  id: string;
-  title: string;
-};
-
-export type CreateTodoInput = Pick<Todo, "title">;
-
-export type UpdateTodoInput = Pick<Todo, "completed" | "id">;
-
-export const TODOS_PATH = "/api/todos";
-
-const todoPath = (id: string) => `${TODOS_PATH}/${id}`;
-
-const send = async (path: string, init?: RequestInit): Promise<Response> => {
-  const response = await fetch(path, {
-    ...init,
-    headers: { "Content-Type": "application/json" },
-  });
-  if (!response.ok) {
-    throw new Error(
-      `${init?.method ?? "GET"} ${path} failed with ${response.status}`,
-    );
+export const TodosQuery = graphql(`
+  query Todos {
+    todos {
+      completed
+      id
+      title
+    }
   }
-  return response;
-};
+`);
 
-const fetchTodos = async (): Promise<Todo[]> => {
-  const response = await send(TODOS_PATH);
-  return (await response.json()) as Todo[];
-};
+export const CreateTodoMutation = graphql(`
+  mutation CreateTodo($input: CreateTodoInput!) {
+    createTodo(input: $input) {
+      completed
+      id
+      title
+    }
+  }
+`);
+
+export const UpdateTodoMutation = graphql(`
+  mutation UpdateTodo($input: UpdateTodoInput!) {
+    updateTodo(input: $input) {
+      completed
+      id
+      title
+    }
+  }
+`);
+
+export const DeleteTodoMutation = graphql(`
+  mutation DeleteTodo($id: ID!) {
+    deleteTodo(id: $id)
+  }
+`);
+
+export type Todo = ResultOf<typeof TodosQuery>["todos"][number];
+
+export type CreateTodoInput = VariablesOf<typeof CreateTodoMutation>["input"];
+
+export type UpdateTodoInput = VariablesOf<typeof UpdateTodoMutation>["input"];
 
 export const createTodo = async (input: CreateTodoInput): Promise<Todo> => {
-  const response = await send(TODOS_PATH, {
-    body: JSON.stringify(input),
-    method: "POST",
-  });
-  return (await response.json()) as Todo;
+  const { createTodo: todo } = await gqlFetch(CreateTodoMutation, { input });
+  return todo;
 };
 
-export const updateTodo = async ({
-  id,
-  ...input
-}: UpdateTodoInput): Promise<Todo> => {
-  const response = await send(todoPath(id), {
-    body: JSON.stringify(input),
-    method: "PATCH",
-  });
-  return (await response.json()) as Todo;
+export const updateTodo = async (input: UpdateTodoInput): Promise<Todo> => {
+  const { updateTodo: todo } = await gqlFetch(UpdateTodoMutation, { input });
+  return todo;
 };
 
 export const deleteTodo = async (id: string): Promise<void> => {
-  await send(todoPath(id), { method: "DELETE" });
+  await gqlFetch(DeleteTodoMutation, { id });
 };
 
 export const todosQueryOptions = queryOptions({
-  queryFn: fetchTodos,
+  queryFn: async () => {
+    const { todos } = await gqlFetch(TodosQuery, {});
+    return todos;
+  },
   queryKey: ["todos"],
 });

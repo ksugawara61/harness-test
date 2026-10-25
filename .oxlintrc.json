@@ -1,7 +1,11 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "extends": ["./node_modules/@ksugawara61/code-lint/oxlintrc.json"],
-  "ignorePatterns": ["dist", "src/route-tree.gen.ts"],
+  "ignorePatterns": [
+    "dist",
+    "src/server/graphql/*.generated.ts",
+    "src/graphql/graphql-env.d.ts"
+  ],
   "options": {
     "typeAware": true
   },
@@ -26,9 +30,10 @@
         "code-lint/no-logic-in-routes": [
           "error",
           {
-            "allowHooks": ["useParams", "useSearch"]
+            "allowHooks": ["useLocalSearchParams", "useServerDocumentContext"]
           }
-        ]
+        ],
+        "import/no-default-export": "off"
       }
     },
     {
@@ -39,6 +44,53 @@
         "code-lint/no-test-id": "error",
         "code-lint/only-use-service-hooks": "error",
         "code-lint/use-service-single-component": "error"
+      }
+    },
+    {
+      "files": [
+        "src/*.ts",
+        "src/*.tsx",
+        "src/api/**",
+        "src/app/*.tsx",
+        "src/graphql/**",
+        "src/lib/**",
+        "src/test-utils/**",
+        "src/ui/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "allowTypeImports": true,
+                "group": ["@/server", "@/server/**"],
+                "message": "src/server はサーバー専用です。クライアントからは import type だけにしてください（API Route の src/app/api と src/server の中は除く）"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/mocks/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "allowTypeImports": true,
+                "group": [
+                  "@/server",
+                  "@/server/**",
+                  "!@/server/graphql/type-defs.generated.ts"
+                ],
+                "message": "src/mocks から src/server の値を import できるのは、リゾルバや秘密情報を含まない type-defs.generated.ts だけです"
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -53,6 +105,11 @@
               {
                 "group": ["@/app", "@/app/**", "@/route-tree.gen*"],
                 "message": "フィーチャーからルーティング（src/app）を import しないでください。パスのパラメーターはルートのファイルで読み、ページに Props で渡します"
+              },
+              {
+                "allowTypeImports": true,
+                "group": ["@/server", "@/server/**"],
+                "message": "src/server はサーバー専用です。クライアントからは import type だけにしてください（API Route の src/app/api と src/server の中は除く）"
               }
             ]
           }
@@ -78,7 +135,7 @@
         "code-lint/no-router-in-use-service-return": [
           "error",
           {
-            "hooks": ["useNavigate", "useRouter"]
+            "hooks": ["useNavigation", "useRouter"]
           }
         ],
         "code-lint/use-service-handle-only": "error"
@@ -125,8 +182,9 @@
         ".dependency-cruiser.mjs",
         ".storybook/main.ts",
         ".storybook/preview.tsx",
+        "codegen.ts",
         "oxfmt.config.mts",
-        "vite.config.ts"
+        "vite.config.mts"
       ],
       "rules": {
         "import/no-default-export": "off"

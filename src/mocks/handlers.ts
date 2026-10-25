@@ -1,12 +1,12 @@
-import { type HttpHandler, http, HttpResponse } from "msw";
-import {
-  type CreateTodoInput,
-  type Todo,
-  TODOS_PATH,
-  type UpdateTodoInput,
-} from "@/api/todo.ts";
+import { graphql as execute } from "graphql";
+import { HttpResponse, type RequestHandler } from "msw";
+import { graphql } from "msw/graphql";
+import { GRAPHQL_PATH } from "@/graphql/client.ts";
+import type { Todo } from "@/server/graphql/resolvers.generated.ts";
+import { mockSchema } from "./schema.ts";
 
-type TodoParams = { id: string };
+// アプリの GraphQL API（オリジンは問わない）。mocks.ts のハンドラーもここから作る
+export const graphqlApi = graphql.link(`*${GRAPHQL_PATH}`);
 
 const resetters = new Set<() => void>();
 
@@ -16,11 +16,12 @@ export const resetTodoStores = () => {
   for (const reset of resetters) reset();
 };
 
-// 開発サーバーとテストの両方で使う、メモリ上に TODO を持つ API。
+// 開発サーバー・テスト・story で使う、メモリ上に TODO を持つ GraphQL API。
+// すべての操作を mockSchema で実行する。
 // 呼び出すたびに別のストアを作るため、ケースごとに初期データを分けられる
 export const createTodoHandlers = (
   initialTodos: Todo[] = [],
-): HttpHandler[] => {
+): RequestHandler[] => {
   const todos = new Map<string, Todo>();
   const reset = () => {
     todos.clear();
@@ -30,28 +31,18 @@ export const createTodoHandlers = (
   resetters.add(reset);
 
   return [
-    http.get(TODOS_PATH, () => HttpResponse.json([...todos.values()])),
-    http.post<never, CreateTodoInput>(TODOS_PATH, async ({ request }) => {
-      const { title } = await request.json();
-      const todo: Todo = { completed: false, id: crypto.randomUUID(), title };
-      todos.set(todo.id, todo);
-      return HttpResponse.json(todo, { status: 201 });
-    }),
-    http.patch<TodoParams, Omit<UpdateTodoInput, "id">>(
-      `${TODOS_PATH}/:id`,
-      async ({ params, request }) => {
-        const todo = todos.get(params.id);
-        if (todo == null) return new HttpResponse(null, { status: 404 });
-        const updated = { ...todo, ...(await request.json()) };
-        todos.set(updated.id, updated);
-        return HttpResponse.json(updated);
-      },
+    graphqlApi.operation(async ({ query, variables }) =>
+      HttpResponse.json(
+        await execute({
+          contextValue: { todos },
+          schema: mockSchema,
+          source: query,
+          variableValues: variables,
+        }),
+      ),
     ),
-    http.delete<TodoParams>(`${TODOS_PATH}/:id`, ({ params }) => {
-      if (!todos.delete(params.id)) {
-        return new HttpResponse(null, { status: 404 });
-      }
-      return new HttpResponse(null, { status: 204 });
-    }),
   ];
 };
+
+// EXPO_PUBLIC_API_MOCK=offline のとき、src/lib/api.ts の apiFetch が使う
+export const handlers = createTodoHandlers();

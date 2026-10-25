@@ -1,38 +1,70 @@
 # harness-test
 
-[harness](https://github.com/ksugawara61/harness) の `@ksugawara61/code-lint` の規約と `@ksugawara61/spec` の仕様テストに従って書いた、React・Vite・TanStack Router・TanStack Query の TODO アプリ。
+[harness](https://github.com/ksugawara61/harness) の `@ksugawara61/code-lint` の規約と `@ksugawara61/spec` の仕様テストに従って書いた、Expo（web）・Expo Router・TanStack Query・GraphQL の TODO アプリ。
 やることの追加・完了の切り替え・削除と、未完了の件数の表示ができる。
 
-バックエンドは持たない。開発サーバーでは MSW がメモリ上の REST API（`/api/todos`）として応答する。
-そのため、リロードするとデータは消える。
+GraphQL の API（`/api/graphql`）は、Expo Router の API Route に載せた Hono と graphql-yoga が受ける。
+PoC のため DB は持たず、TODO はサーバーのプロセスのメモリに持つ。サーバーを止めるとデータは消える。
+API はサーバーを立てずに MSW のモックでも応答できる（「GraphQL とモック」を参照）。
+対象は web だけで、`app.json` の `platforms` を `["web"]` にしている。
 
 ## 使い方
 
 ```bash
 pnpm install
-pnpm dev           # 開発サーバー（MSW の API に向く）
+pnpm dev           # Expo の開発サーバー（web）。画面と API Route の両方を動かす
+pnpm dev:mock      # EXPO_PUBLIC_API_MOCK=server。API Route のリゾルバの無いフィールドを自動でモックする
+pnpm dev:offline   # EXPO_PUBLIC_API_MOCK=offline。API Route に送らず、アプリの中の MSW のモックが応答する
 pnpm storybook     # Storybook の開発サーバー（http://localhost:6006）
 pnpm test          # Vitest の仕様テスト・全 story の描画テストと、spec.ts の網羅の検査
-pnpm lint          # oxlint（型情報を使う検査を含む）・JSON のキー順・dependency-cruiser の依存の検査
+pnpm codegen       # schema.graphql から src/graphql/・src/server/graphql/ の生成物を作り直す
+pnpm codegen:check # 生成物がスキーマと食い違っていないかを検査する
+pnpm lint          # oxlint（型情報を使う検査を含む）・GraphQL・JSON のキー順・dependency-cruiser の依存の検査
 pnpm typecheck     # tsc
 pnpm format        # oxfmt
 pnpm knip          # 未使用の export・依存の検出
-pnpm build         # dist/ に出力する
+pnpm build         # expo export で dist/client に事前生成した HTML と JS を、dist/server に API Route を出力する（モックは含めない）
+pnpm serve         # dist/ を配信する（画面と API Route）
 pnpm build:storybook # storybook-static/ に Storybook を出力する
 ```
+
+`pnpm build` の出力は API Route を含むため、静的ホスティング（GitHub Pages など）では API が動かない。
+EAS Hosting などのサーバーに載せるか、API ごとアプリの中に持たせる `EXPO_PUBLIC_API_MOCK=offline pnpm build` で出力する。
 
 ## 構成
 
 ```text
 .storybook/              # Storybook の設定。preview で QueryClient と MSW を story ごとに用意する
+app.json                 # Expo の設定。web.output: "static" と expo-router の apiRoutes: true で、HTML の事前生成と API Route を両立する
+codegen.ts               # graphql-codegen の設定（サーバーとモックのリゾルバの型）
+scripts/gen-typedefs.mts # schema.graphql から SDL の文字列を生成する
 src/
-  main.tsx               # 入口。QueryClient と TanStack Router のルーターを用意し、開発サーバーでは MSW を動かしてから描画する
-  app/                   # ルーティング（TanStack Router の file-based routing）。ページを描画するだけ
-    __root.tsx           # ルートのルート。子のルートを <Outlet /> で描画する
+  app/                   # ルーティング（Expo Router の file-based routing）。ページを描画するだけ
+    +html.tsx            # web の静的レンダリングで使う HTML の外枠（lang・title）
+    _layout.tsx          # ルートのレイアウト。QueryClient を用意し、子のルートを <Slot /> で描画する
     index.tsx            # `/`。todo-page を描画する
-  route-tree.gen.ts      # src/app から TanStack Router の vite プラグインが生成するルートの木（編集しない）
-  api/todo.ts            # REST API の呼び出しと TanStack Query の queryOptions
-  mocks/handlers.ts      # メモリ上に TODO を持つ MSW のハンドラー（開発サーバー・テスト・story で共用）
+    api/
+      [...route]+api.ts  # キャッチオールの API Route。/api 以下をすべて Hono に渡す（このファイル以外に +api.ts を作らない）
+  server/                # サーバー専用。API Route と src/server の中からだけ値を import する
+    app.ts               # Hono のアプリ（basePath("/api")）。/api/graphql を graphql-yoga に、/api/health を返す
+    app.test.ts          # Hono のアプリに app.request でリクエストを渡すテスト
+    graphql/
+      schema.ts          # makeExecutableSchema。EXPO_PUBLIC_API_MOCK=server のときは自動のモックを足す
+      resolvers.ts       # リゾルバ。データは repositories から読み書きする
+      type-defs.generated.ts  # SDL の文字列（生成物）
+      resolvers.generated.ts  # リゾルバの型（生成物）
+    repositories/todo.ts # TODO のストア（PoC のためメモリ上）。DB に移すときはここだけを差し替える
+  graphql/               # クライアント・サーバー・モックが共有する GraphQL の契約
+    schema.graphql       # 唯一の手書きのスキーマ
+    client.ts            # gql.tada の graphql() と、API のパス（GRAPHQL_PATH）
+    graphql-env.d.ts     # gql.tada の型（生成物）
+  lib/
+    api.ts               # apiFetch。API への fetch の唯一の入口。モックのときはアプリの中で応答する
+    gql.ts               # gqlFetch。gql.tada のドキュメントを送り、data を返す
+  api/todo.ts            # GraphQL の操作（gql.tada）と TanStack Query の queryOptions
+  mocks/
+    schema.ts            # メモリ上のストアを読み書きするリゾルバと、モックのスキーマ
+    handlers.ts          # すべての操作をモックのスキーマで実行する MSW のハンドラー（開発サーバー・テスト・story で共用）
   features/
     todo-page/           # 画面。追加フォームと一覧を並べる
       shared/
@@ -45,18 +77,29 @@ src/
           features/
             todo-item/   # 1 件分の完了切り替えと削除
   ui/                    # 見た目だけを持つ部品（button・text-field・checkbox・alert）。部品ごとに index.tsx と stories.tsx を置く
+    theme.ts             # 色。src/index.css の CSS 変数を参照する
+  index.css              # 色の CSS 変数（ライト・ダーク）と body の背景
   test-utils/            # 描画ヘルパー・MSW のサーバー・QueryClient
   stories.test.tsx       # すべての stories.tsx の story を描画するテスト
 ```
 
 ルーティングは `src/app/` に、画面の中身は `src/features/` に置き分ける。
-`src/app/` のルートのファイルは、`src/features/` 直下のページを `component` に渡すだけにする。
+`src/app/` のルートのファイルは、`src/features/` 直下のページを default export で渡すだけにする。
 データの取得や状態などのロジックはルートのファイルに置かず、フィーチャーの `service.ts` に置く。
 
 ```tsx
 // src/app/index.tsx
-export const Route = createFileRoute("/")({ component: TodoPage });
+import { TodoPage } from "@/features/todo-page/index.tsx";
+
+export default TodoPage;
 ```
+
+画面は React Native の部品（`View`・`Text`・`Pressable`・`TextInput`）で書き、web では react-native-web が描画する。
+`role` を付けると、react-native-web は意味のある要素（`button`・`ul`・`li`・`main`・`section` など）で描画する。
+そのため、テストは DOM の要素を直接書いていたときと同じく、`getByRole` で引ける。
+スタイルは `StyleSheet.create` で書き、色は `src/ui/theme.ts` から CSS 変数（`var(--color-text)` など）で参照する。
+CSS 変数は `src/index.css` で `prefers-color-scheme` に合わせて切り替えるため、ダークモードにも追従する。
+CSS 変数は web でしか使えないため、ネイティブに広げるときは `theme.ts` を差し替える。
 
 `src/features/` の直下には、ページ相当のフィーチャー（`todo-page`）だけを置く。
 ページの部品は、ロジックを持てば親の `features/<name>/` にサブフィーチャーとして、ロジックが無ければ親の `components/<name>.tsx` に置く。
@@ -64,12 +107,98 @@ export const Route = createFileRoute("/")({ component: TodoPage });
 import は親から直下のサブフィーチャーへの向きだけにし、ページ同士・サブフィーチャー同士では import しない。
 複数のサブフィーチャーで使う部品は、使う側すべてに一番近い共通の親のフィーチャーの `shared/<name>/` に共有フィーチャーとして置く。
 共有フィーチャーの構成はサブフィーチャーと同じ。
-フィーチャーから `src/app/` や `route-tree.gen.ts` は import しない。
+フィーチャーから `src/app/` は import しない。
+
+## GraphQL とモック
+
+スキーマは `src/graphql/schema.graphql` だけに手で書き、そこから `pnpm codegen` で次の 3 つを生成する。
+生成物はコミットし、手で編集しない。CI の `pnpm codegen:check` が、スキーマとの食い違いを落とす。
+
+| 生成物                                      | 作るもの                        | 使う側                                                   |
+| ------------------------------------------- | ------------------------------- | -------------------------------------------------------- |
+| `src/graphql/graphql-env.d.ts`              | gql.tada の型（introspection）  | `src/graphql/client.ts` の `graphql`                     |
+| `src/server/graphql/type-defs.generated.ts` | SDL の文字列                    | `src/server/graphql/schema.ts`・`src/mocks/schema.ts`    |
+| `src/server/graphql/resolvers.generated.ts` | リゾルバの型（graphql-codegen） | `src/server/graphql/resolvers.ts`・`src/mocks/schema.ts` |
+
+SDL は文字列の TS モジュールにして渡し、サーバーで `.graphql` を実行時に読み込まない（Workers などでは `fs` が使えず、Metro・Vitest にも個別の設定が要るため）。
+
+`graphql-env.d.ts` は gql.tada の CLI（`gql-tada generate output`）が、`tsconfig.json` の `gql.tada/ts-plugin` の設定を読んで書き出す。
+gql.tada の CLI と TypeScript のプラグインは TypeScript の API を使い、TypeScript 7 では動かないため、TypeScript は 6 にしている。
+`pnpm codegen:check` は、`gql-tada check` でクエリがスキーマに合っているかも検査する。
+
+クエリとミューテーションは `src/api/todo.ts` に `graphql()` で書く。
+結果と変数の型はスキーマから付くため、スキーマに無いフィールドを書くと typecheck が落ちる。
+送るのは `src/lib/gql.ts` の `gqlFetch` で、`fetch` は `src/lib/api.ts` の `apiFetch` からしか呼ばない。
+
+```ts
+// src/api/todo.ts
+export const TodosQuery = graphql(`
+  query Todos {
+    todos {
+      completed
+      id
+      title
+    }
+  }
+`);
+
+export const todosQueryOptions = queryOptions({
+  queryFn: async () => {
+    const { todos } = await gqlFetch(TodosQuery, {});
+    return todos;
+  },
+  queryKey: ["todos"],
+});
+```
+
+サーバーは、`src/app/api/[...route]+api.ts` がすべてのメソッドを `src/server/app.ts` の Hono のアプリに渡す。
+ルーティングは Hono の側だけで書き、Expo の `+api.ts` や `+middleware.ts` は足さない。
+`/api/graphql` は graphql-yoga が `src/server/graphql/schema.ts` で実行し、開発中は GraphiQL も開ける。
+
+```ts
+// src/server/app.ts
+export const app = new Hono()
+  .basePath("/api")
+  .on(["GET", "POST"], "/graphql", (c) => yoga.fetch(c.req.raw))
+  .get("/health", (c) => c.json({ ok: true }));
+```
+
+Expo の API Route まわりで、次の 2 つに合わせている。
+
+- Expo のサーバーは、グローバルの `Response` で作った値しか API Route の戻り値として受け付けない。graphql-yoga が同梱の fetch の実装で `Response` を作らないよう、`createYoga` の `fetchAPI` にグローバルの `Request`・`Response` を渡している
+- Expo の開発サーバーは、API Route のモジュールをリクエストごとに評価し直す。モジュールの変数はリクエストをまたいで残らないため、`repositories/todo.ts` はストアを `globalThis` に置いている
+
+`expo export` は API Route を CommonJS の `.js` で出力し、`expo serve` はそれを `require` で読む。
+`package.json` に `"type": "module"` があると Node が ES モジュールとして読んで失敗するため、`"type"` は付けない。
+ES モジュールとして読ませたい設定とスクリプトは、`vite.config.mts`・`scripts/gen-typedefs.mts` のように拡張子で決める。
+
+`src/server/` はサーバー専用で、ほかの場所から値として import すると oxlint の `no-restricted-imports` が落とす（`import type` は許す）。
+例外は API Route（`src/app/api/`）と `src/server/` の中、それと `src/mocks/` からの `type-defs.generated.ts` の import だけ。
+
+モックは `src/mocks/` に置く。
+サーバーのリゾルバとは別に、`schema.ts` が `schema.graphql` にモック用のリゾルバを付けて、メモリ上のストア（`context.todos`）を読み書きする。
+サーバーのリゾルバは DB や秘密情報に触れうるため、モックからは import しない。
+`@graphql-tools/mock` の `addMocksToSchema`（`preserveResolvers: true`）を通すため、スキーマに足したフィールドは、リゾルバを書くまで型に合う値が返る。
+`handlers.ts` の `createTodoHandlers` は、すべての操作をこのスキーマで実行する MSW のハンドラーを返す。
+
+どこでモックが応答するかは、場面ごとに次のとおり。
+
+| 場面               | GraphQL の応答                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `pnpm dev`         | API Route のリゾルバ                                                                                         |
+| `pnpm dev:mock`    | API Route のリゾルバ。リゾルバの無いフィールドは `addMocksToSchema`（`preserveResolvers: true`）が返す       |
+| `pnpm dev:offline` | `apiFetch` が MSW の `getResponse` で `src/mocks/handlers.ts` の `handlers` に応答させる。サーバーに送らない |
+| `pnpm test`        | `msw/node` の `server` が `fetch` を差し替える。`src/server/app.test.ts` は Hono のアプリを直接呼ぶ          |
+| Storybook          | `.storybook/preview.tsx` の `virtual:msw` が `fetch` を差し替える                                            |
+
+`apiFetch` は Service Worker を使わず、`fetch` を呼ぶ手前でハンドラーに応答させる。
+MSW とモックは動的 import で読み込むため、`EXPO_PUBLIC_API_MOCK` を付けないビルドには入らない。
+`apiFetch` は web ではページと同じオリジンの API Route に送る。`EXPO_PUBLIC_API_URL` を付けると、送り先のオリジンを変えられる。
 
 ## import のパス
 
-`tsconfig.json` の `paths` と `vite.config.ts` の `resolve.alias` で、`@/` を `src/` に解決する。
-Vitest と Storybook も `vite.config.ts` を読むため、同じエイリアスが効く。
+`tsconfig.json` の `paths` と `vite.config.mts` の `resolve.alias` で、`@/` を `src/` に解決する。
+Vitest と Storybook も `vite.config.mts` を読むため、同じエイリアスが効く。
 
 同じ単位の内側は相対パスで、単位を越えるときは `@/` で import する。
 単位は、`src/features/` 直下のフィーチャー（サブフィーチャーを含む）・`src/` 直下のディレクトリ（`app`・`api`・`ui` など）・`src/` 直下のファイルの 3 種類。
@@ -99,36 +228,39 @@ import { TodoError } from "../../../../shared/todo-error/index.tsx";
 
 フィーチャー（サブフィーチャーを含む）のディレクトリには、次のファイルを置く。
 
-| ファイル      | 中身                                                                       |
-| ------------- | -------------------------------------------------------------------------- |
-| `index.tsx`   | フィーチャーの入口のコンポーネント。export は 1 つだけ                     |
-| `service.ts`  | フックとロジックをまとめた `useService`                                    |
-| `spec.ts`     | `defineSpec` で宣言した仕様。ケースごとに given・when・yields を書く       |
-| `mocks.ts`    | テストと story で使う API のモック。`Record<string, HttpHandler[]>` にする |
-| `test.tsx`    | `spec.ts` の各項目を `specIt` で確かめる仕様テスト                         |
-| `stories.tsx` | Storybook の story。`mocks.ts` のケースごとに表示を並べる                  |
+| ファイル      | 中身                                                                          |
+| ------------- | ----------------------------------------------------------------------------- |
+| `index.tsx`   | フィーチャーの入口のコンポーネント。export は 1 つだけ                        |
+| `service.ts`  | フックとロジックをまとめた `useService`                                       |
+| `spec.ts`     | `defineSpec` で宣言した仕様。ケースごとに given・when・yields を書く          |
+| `mocks.ts`    | テストと story で使う API のモック。`Record<string, RequestHandler[]>` にする |
+| `test.tsx`    | `spec.ts` の各項目を `specIt` で確かめる仕様テスト                            |
+| `stories.tsx` | Storybook の story。`mocks.ts` のケースごとに表示を並べる                     |
 
 ## 当てている規約
 
 `.oxlintrc.json` で code-lint の `oxlintrc.json` を `extends` し、規約のルールをパスごとに有効にしている。
 
-| 対象                                              | ルール                                                                                                      |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `src/app/**`                                      | `no-logic-in-routes`（`useParams`・`useSearch` だけ許す）                                                   |
-| `src/features/**/*.tsx`                           | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など                         |
-| `src/features/**/index.tsx`                       | `no-multiple-feature-exports`                                                                               |
-| `src/features/**/index.tsx`・`src/ui/*/index.tsx` | `use-stories-file`                                                                                          |
-| `src/**/stories.tsx`                              | `no-storybook-title`                                                                                        |
-| `src/features/**`                                 | `use-service-file-name`・`use-feature-directory`・`no-restricted-imports`（`@/app`）                        |
-| `src/features/**/components/**`                   | `no-logic-in-components`                                                                                    |
-| `src/features/**/service.ts`                      | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return`                        |
-| `src/features/**/mocks.ts`                        | `use-mocks-record`                                                                                          |
-| `src/ui/**/*.tsx`                                 | `no-style-prop-in-ui`・`no-test-id`                                                                         |
-| `src/**/test.tsx`                                 | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など                                  |
-| `src/**`                                          | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`・`use-nearest-shared-import` |
+| 対象                                                  | ルール                                                                                                         |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `src/app/**`                                          | `no-logic-in-routes`（`useLocalSearchParams`・`useServerDocumentContext` だけ許す）                            |
+| `src/features/**/*.tsx`                               | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など                            |
+| `src/features/**/index.tsx`                           | `no-multiple-feature-exports`                                                                                  |
+| `src/features/**/index.tsx`・`src/ui/*/index.tsx`     | `use-stories-file`                                                                                             |
+| `src/**/stories.tsx`                                  | `no-storybook-title`                                                                                           |
+| `src/features/**`                                     | `use-service-file-name`・`use-feature-directory`・`no-restricted-imports`（`@/app`・`@/server`）               |
+| `src/api/**` などクライアントのコード・`src/mocks/**` | `no-restricted-imports`（`@/server` は `import type` だけ。`src/mocks/**` は `type-defs.generated.ts` も許す） |
+| `src/features/**/components/**`                       | `no-logic-in-components`                                                                                       |
+| `src/features/**/service.ts`                          | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return`                           |
+| `src/features/**/mocks.ts`                            | `use-mocks-record`                                                                                             |
+| `src/ui/**/*.tsx`                                     | `no-style-prop-in-ui`・`no-test-id`                                                                            |
+| `src/**/test.tsx`                                     | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など                                     |
+| `src/**`                                              | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`・`use-nearest-shared-import`    |
 
-`src/route-tree.gen.ts` は生成物のため、oxlint・oxfmt・knip の対象から外している。
-`pnpm dev`・`pnpm build`・`pnpm test` のたびに vite プラグインが生成し直す。ルートを足したら、生成し直したファイルもコミットする。
+Expo Router のルートは default export が要るため、`src/app/**` では `import/no-default-export` を切っている。
+`+html.tsx` は、Expo が差し込む script と CSS を `useServerDocumentContext` から受け取って描画するため、このフックだけはルートのファイルでも許している。
+`src/graphql/graphql-env.d.ts` と `src/server/graphql/*.generated.ts` は生成物のため、oxlint・oxfmt の対象から外している。
+`.graphql` は oxlint が読めないため、`pnpm lint:graphql` で code-lint の `code-lint-graphql` に検査させる。
 
 コンポーネントはフックを直接呼ばず、同じディレクトリの `service.ts` の `useService` から受け取った値と `handleXxx` を JSX に渡すだけにしている。
 TanStack Query の `useQuery`・`useMutation` も `useService` の中で呼ぶ。
@@ -161,7 +293,7 @@ export default {
 | `no-circular`         | 依存が循環する                                                                               |
 
 `sharedFeatureRules()` は設定を読むたびに `src/features/` の各フィーチャーの `shared/` の有無を見て、ルールを作り直す。
-TypeScript 7 は dependency-cruiser が使う TypeScript の API にまだ対応していないため、`parser: "swc"` で `@swc/core` に解析させている。
+解析は `parser: "swc"` で `@swc/core` に任せ、TypeScript の API に頼らない（TypeScript 7 は dependency-cruiser が使う API にまだ対応していないため、7 に上げても動くようにしておく）。
 
 ## 仕様テスト
 
@@ -189,7 +321,21 @@ export const spec = defineSpec("todo-add", {
 `spec.ts` に宣言したのにテストが無いケースや、`spec.ts` に無い仕様 ID を対応付けたテストがあると失敗する。
 
 モックするのは API の境界だけで、MSW で差し替える。
-`mocks.ts` は `{ ... } satisfies Record<string, HttpHandler[]>` にし、値に関数を置かない。
+`mocks.ts` は `{ ... } satisfies Record<string, RequestHandler[]>` にし、値に関数を置かない。
+失敗するケースは、`src/mocks/handlers.ts` の `graphqlApi` に `src/api/todo.ts` の操作を渡し、`errors` を返すハンドラーにする。
+
+```ts
+// src/features/todo-page/features/todo-add/mocks.ts
+export const TodoAddMocks = {
+  Error: [
+    graphqlApi.mutation(CreateTodoMutation, () =>
+      HttpResponse.json({ errors: [{ message: "作成に失敗しました" }] }),
+    ),
+  ],
+  Success: createTodoHandlers(),
+} satisfies Record<string, RequestHandler[]>;
+```
+
 テストはケース名で引いて `server.use(...TodoListMocks.Success)` と書く。
 メモリ上のストアはテストの間で共有されるため、`setup.ts` が `afterEach` で `resetTodoStores()` を呼んで初期データに戻す。
 子のフィーチャーで確かめた振る舞いは親で確かめない。
@@ -224,6 +370,16 @@ export const Success: Story = {
 `src/stories.test.tsx` は、Storybook の `composeStories` ですべての `stories.tsx` の story を jsdom に描画し、`play` まで実行する。
 描画や `play` で例外が出ると `pnpm test` が失敗するため、壊れた story を Storybook を開かずに CI で見つけられる。
 ブラウザの MSW（`virtual:msw`）はテストでは `msw/node` の `server` に差し替えている。
+
+Vitest と Storybook は Expo（Metro）ではなく Vite で動かす。
+Storybook は `@storybook/react-native-web-vite` を使い、`react-native` を `react-native-web` で描画する。
+Vitest は `vite.config.mts` の `resolve.alias` で `react-native` を `react-native-web` に置き換える。
+どちらも web のアプリと同じ要素で描画される。
+`@storybook/react-native-web-vite` が React の Vite プラグインを足すため、`vite.config.mts` には `@vitejs/plugin-react` を入れない（二重に掛かるのを避ける）。
+JSX は Vite が `tsconfig.json` の `jsx`（`react-jsx`）で変換する。
+graphql は、Vite（`development` 条件）と Node で別のファイルに解決されると別のモジュールとして読まれ、スキーマを実行できない。
+そのため `vite.config.mts` の `resolve.alias` で、Vite が解決する `graphql` を、Node が `@graphql-tools`・graphql-yoga に読ませるのと同じファイルに揃えている。
+Storybook では、Expo がビルド時に埋め込む `process.env.EXPO_PUBLIC_*` を `.storybook/main.ts` の `define` で埋めている。
 
 ## harness のパッケージの取り込み方
 

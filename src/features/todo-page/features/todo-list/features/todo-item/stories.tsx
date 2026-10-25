@@ -1,4 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Meta, StoryObj } from "@storybook/react-native-web-vite";
+import { View } from "react-native";
 import { userEvent } from "storybook/test";
 import { buildTodo } from "@/test-utils/factories.ts";
 import { TodoItem } from "./index.tsx";
@@ -7,12 +8,12 @@ import { TodoItemMocks } from "./mocks.ts";
 const meta = {
   args: { todo: buildTodo({ id: "todo-1", title: "牛乳を買う" }) },
   component: TodoItem,
-  // TodoItem は一覧の 1 行のため、ul の中に描画する
+  // TodoItem は一覧の 1 行のため、一覧（role="list"）の中に描画する
   decorators: [
     (Story) => (
-      <ul className="todo-list">
+      <View role="list">
         <Story />
-      </ul>
+      </View>
     ),
   ],
 } satisfies Meta<typeof TodoItem>;

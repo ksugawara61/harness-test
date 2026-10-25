@@ -1,9 +1,9 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Meta, StoryObj } from "@storybook/react-native-web-vite";
 import { fn } from "storybook/test";
 import { Button } from "./index.tsx";
 
 const meta = {
-  args: { children: "追加", onClick: fn(), type: "button" },
+  args: { children: "追加", onPress: fn() },
   component: Button,
 } satisfies Meta<typeof Button>;
 

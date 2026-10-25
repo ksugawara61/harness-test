@@ -1,11 +1,11 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Meta, StoryObj } from "@storybook/react-native-web-vite";
 import { fn } from "storybook/test";
 import { TextField } from "./index.tsx";
 
 const meta = {
   args: {
     label: "やること",
-    onChange: fn(),
+    onChangeText: fn(),
     placeholder: "牛乳を買う",
     value: "",
   },

@@ -1,11 +1,16 @@
-import { type HttpHandler, http, HttpResponse } from "msw";
-import { TODOS_PATH } from "@/api/todo.ts";
+import { HttpResponse, type RequestHandler } from "msw";
+import { DeleteTodoMutation, UpdateTodoMutation } from "@/api/todo.ts";
+import { graphqlApi } from "@/mocks/handlers.ts";
 
-const failure = () => new HttpResponse(null, { status: 500 });
+const errors = [{ message: "更新に失敗しました" }];
 
 export const TodoItemMocks = {
   Error: [
-    http.patch(`${TODOS_PATH}/:id`, failure),
-    http.delete(`${TODOS_PATH}/:id`, failure),
+    graphqlApi.mutation(UpdateTodoMutation, () =>
+      HttpResponse.json({ errors }),
+    ),
+    graphqlApi.mutation(DeleteTodoMutation, () =>
+      HttpResponse.json({ errors }),
+    ),
   ],
-} satisfies Record<string, HttpHandler[]>;
+} satisfies Record<string, RequestHandler[]>;
