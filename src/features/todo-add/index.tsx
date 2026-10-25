@@ -1,7 +1,7 @@
 import { Alert } from "../../ui/alert.tsx";
 import { Button } from "../../ui/button.tsx";
 import { TextField } from "../../ui/text-field.tsx";
-import { useService } from "./use-service.ts";
+import { useService } from "./service.ts";
 
 export const TodoAdd = () => {
   const {

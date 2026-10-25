@@ -23,13 +23,19 @@
       }
     },
     {
+      "files": ["src/features/**"],
+      "rules": {
+        "code-lint/use-service-file-name": "error"
+      }
+    },
+    {
       "files": ["src/features/*/index.tsx"],
       "rules": {
         "code-lint/no-multiple-feature-exports": "error"
       }
     },
     {
-      "files": ["src/features/*/use-service.ts"],
+      "files": ["src/features/*/service.ts"],
       "rules": {
         "code-lint/no-raw-setter-return": "error",
         "code-lint/use-service-handle-only": "error"

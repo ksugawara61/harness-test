@@ -1,6 +1,6 @@
 import { Alert } from "../../ui/alert.tsx";
 import { TodoItem } from "../todo-item/index.tsx";
-import { useService } from "./use-service.ts";
+import { useService } from "./service.ts";
 
 export const TodoList = () => {
   const { isEmpty, isError, isPending, remainingCount, todos } = useService();

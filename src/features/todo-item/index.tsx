@@ -2,7 +2,7 @@ import type { Todo } from "../../api/todo.ts";
 import { Alert } from "../../ui/alert.tsx";
 import { Button } from "../../ui/button.tsx";
 import { Checkbox } from "../../ui/checkbox.tsx";
-import { useService } from "./use-service.ts";
+import { useService } from "./service.ts";
 
 type Props = {
   todo: Todo;

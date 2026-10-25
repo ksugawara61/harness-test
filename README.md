@@ -36,29 +36,30 @@ src/
 
 フィーチャーのディレクトリには、次のファイルを置く。
 
-| ファイル         | 中身                                                                 |
-| ---------------- | -------------------------------------------------------------------- |
-| `index.tsx`      | フィーチャーの入口のコンポーネント。export は 1 つだけ               |
-| `use-service.ts` | フックとロジックをまとめた `useService`                              |
-| `spec.ts`        | `defineSpec` で宣言した仕様。ケースごとに given・when・yields を書く |
-| `mocks.ts`       | テストで使う API のモック。`Record<string, HttpHandler[]>` にする    |
-| `test.tsx`       | `spec.ts` の各項目を `specIt` で確かめる仕様テスト                   |
+| ファイル     | 中身                                                                 |
+| ------------ | -------------------------------------------------------------------- |
+| `index.tsx`  | フィーチャーの入口のコンポーネント。export は 1 つだけ               |
+| `service.ts` | フックとロジックをまとめた `useService`                              |
+| `spec.ts`    | `defineSpec` で宣言した仕様。ケースごとに given・when・yields を書く |
+| `mocks.ts`   | テストで使う API のモック。`Record<string, HttpHandler[]>` にする    |
+| `test.tsx`   | `spec.ts` の各項目を `specIt` で確かめる仕様テスト                   |
 
 ## 当てている規約
 
 `.oxlintrc.json` で code-lint の `oxlintrc.json` を `extends` し、規約のルールをパスごとに有効にしている。
 
-| 対象                            | ルール                                                                              |
-| ------------------------------- | ----------------------------------------------------------------------------------- |
-| `src/features/**/*.tsx`         | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など |
-| `src/features/*/index.tsx`      | `no-multiple-feature-exports`                                                       |
-| `src/features/*/use-service.ts` | `use-service-handle-only`・`no-raw-setter-return`                                   |
-| `src/features/*/mocks.ts`       | `use-mocks-record`                                                                  |
-| `src/ui/**/*.tsx`               | `no-style-prop-in-ui`・`no-test-id`                                                 |
-| `src/**/test.tsx`               | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など          |
-| `src/**`                        | `max-lines`（300 行）                                                               |
+| 対象                        | ルール                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `src/features/**/*.tsx`     | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など |
+| `src/features/*/index.tsx`  | `no-multiple-feature-exports`                                                       |
+| `src/features/**`           | `use-service-file-name`                                                             |
+| `src/features/*/service.ts` | `use-service-handle-only`・`no-raw-setter-return`                                   |
+| `src/features/*/mocks.ts`   | `use-mocks-record`                                                                  |
+| `src/ui/**/*.tsx`           | `no-style-prop-in-ui`・`no-test-id`                                                 |
+| `src/**/test.tsx`           | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など          |
+| `src/**`                    | `max-lines`（300 行）                                                               |
 
-コンポーネントはフックを直接呼ばず、同じディレクトリの `useService` から受け取った値と `handleXxx` を JSX に渡すだけにしている。
+コンポーネントはフックを直接呼ばず、同じディレクトリの `service.ts` の `useService` から受け取った値と `handleXxx` を JSX に渡すだけにしている。
 TanStack Query の `useQuery`・`useMutation` も `useService` の中で呼ぶ。
 
 `typescript/no-floating-promises` を動かすため、`oxlint-tsgolint` を入れて `typeAware` を有効にしている。
