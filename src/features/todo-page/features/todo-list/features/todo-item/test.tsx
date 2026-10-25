@@ -1,9 +1,9 @@
 import { specIt } from "@ksugawara61/spec/vitest";
 import { screen } from "@testing-library/react";
 import { describe, expect } from "vitest";
-import { buildTodo } from "../../test-utils/factories.ts";
-import { renderFeature } from "../../test-utils/render.tsx";
-import { server } from "../../test-utils/server.ts";
+import { buildTodo } from "../../../../../../test-utils/factories.ts";
+import { renderFeature } from "../../../../../../test-utils/render.tsx";
+import { server } from "../../../../../../test-utils/server.ts";
 import { TodoItem } from "./index.tsx";
 import { TodoItemMocks } from "./mocks.ts";
 import { spec } from "./spec.ts";

@@ -30,15 +30,24 @@ src/
   mocks/handlers.ts      # メモリ上に TODO を持つ MSW のハンドラー（開発サーバー・テスト・story で共用）
   features/
     todo-page/           # 画面。追加フォームと一覧を並べる
-    todo-add/            # 追加フォーム
-    todo-list/           # 一覧と未完了の件数
-    todo-item/           # 1 件分の完了切り替えと削除
+      features/
+        todo-add/        # 追加フォーム
+        todo-list/       # 一覧
+          components/
+            todo-remaining.tsx # 未完了の件数（ロジックの無い部品）
+          features/
+            todo-item/   # 1 件分の完了切り替えと削除
   ui/                    # 見た目だけを持つ部品（button・text-field・checkbox・alert）。部品ごとに index.tsx と stories.tsx を置く
   test-utils/            # 描画ヘルパー・MSW のサーバー・QueryClient
   stories.test.tsx       # すべての stories.tsx の story を描画するテスト
 ```
 
-フィーチャーのディレクトリには、次のファイルを置く。
+`src/features/` の直下には、ページ相当のフィーチャー（`todo-page`）だけを置く。
+ページの部品は、ロジックを持てば親の `features/<name>/` にサブフィーチャーとして、ロジックが無ければ親の `components/<name>.tsx` に置く。
+サブフィーチャーの中も同じ構成で、`todo-item` は `todo-list` のサブフィーチャーにしている。
+import は親から直下のサブフィーチャーへの向きだけにし、ページ同士・サブフィーチャー同士では import しない。
+
+フィーチャー（サブフィーチャーを含む）のディレクトリには、次のファイルを置く。
 
 | ファイル      | 中身                                                                       |
 | ------------- | -------------------------------------------------------------------------- |
@@ -53,18 +62,19 @@ src/
 
 `.oxlintrc.json` で code-lint の `oxlintrc.json` を `extends` し、規約のルールをパスごとに有効にしている。
 
-| 対象                                             | ルール                                                                              |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| `src/features/**/*.tsx`                          | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など |
-| `src/features/*/index.tsx`                       | `no-multiple-feature-exports`                                                       |
-| `src/features/*/index.tsx`・`src/ui/*/index.tsx` | `use-stories-file`                                                                  |
-| `src/**/stories.tsx`                             | `no-storybook-title`                                                                |
-| `src/features/**`                                | `use-service-file-name`                                                             |
-| `src/features/*/service.ts`                      | `use-service-handle-only`・`no-raw-setter-return`                                   |
-| `src/features/*/mocks.ts`                        | `use-mocks-record`                                                                  |
-| `src/ui/**/*.tsx`                                | `no-style-prop-in-ui`・`no-test-id`                                                 |
-| `src/**/test.tsx`                                | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など          |
-| `src/**`                                         | `max-lines`（300 行）                                                               |
+| 対象                                              | ルール                                                                              |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `src/features/**/*.tsx`                           | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など |
+| `src/features/**/index.tsx`                       | `no-multiple-feature-exports`                                                       |
+| `src/features/**/index.tsx`・`src/ui/*/index.tsx` | `use-stories-file`                                                                  |
+| `src/**/stories.tsx`                              | `no-storybook-title`                                                                |
+| `src/features/**`                                 | `use-service-file-name`・`use-feature-directory`                                    |
+| `src/features/**/components/**`                   | `no-logic-in-components`                                                            |
+| `src/features/**/service.ts`                      | `use-service-handle-only`・`no-raw-setter-return`                                   |
+| `src/features/**/mocks.ts`                        | `use-mocks-record`                                                                  |
+| `src/ui/**/*.tsx`                                 | `no-style-prop-in-ui`・`no-test-id`                                                 |
+| `src/**/test.tsx`                                 | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など          |
+| `src/**`                                          | `max-lines`（300 行）・`no-cross-feature-import`                                    |
 
 コンポーネントはフックを直接呼ばず、同じディレクトリの `service.ts` の `useService` から受け取った値と `handleXxx` を JSX に渡すだけにしている。
 TanStack Query の `useQuery`・`useMutation` も `useService` の中で呼ぶ。
@@ -106,11 +116,12 @@ export const spec = defineSpec("todo-add", {
 
 ## Storybook
 
-フィーチャーと UI 部品の入口（`src/features/*/index.tsx`・`src/ui/*/index.tsx`）には、同じディレクトリに `stories.tsx` を置く。
+フィーチャーと UI 部品の入口（`src/features/**/index.tsx`・`src/ui/*/index.tsx`）には、同じディレクトリに `stories.tsx` を置く。
 無ければ `code-lint/use-stories-file` が lint で落とすため、コンポーネントを足すときは story も同時に書く。
+`components/` の部品は 1 ディレクトリに複数のファイルを置くため、story を置かず、親のフィーチャーの story で表示する。
 
 ```tsx
-// src/features/todo-list/stories.tsx
+// src/features/todo-page/features/todo-list/stories.tsx
 const meta = {
   component: TodoList,
 } satisfies Meta<typeof TodoList>;
@@ -124,7 +135,7 @@ export const Success: Story = {
 };
 ```
 
-- meta に `title` を書かない。ディレクトリから `features/todo-list` のような名前が付く
+- meta に `title` を書かない。ディレクトリから `features/todo-page/features/todo-list` のような名前が付く
 - API は `parameters.msw.handlers` に `mocks.ts` のケースを渡して差し替える。`.storybook/preview.tsx` が story ごとに MSW のハンドラーとメモリ上のストアを入れ替える
 - QueryClient は `preview.tsx` のデコレーターが story ごとに作る。retry を切っているため、失敗系の表示もすぐに出る
 - 操作しないと出ない表示（送信に失敗した後のエラーなど）は、`play` でその状態まで進める。`play` は表示が出るまで待つだけにし、検証は仕様テストに任せる
