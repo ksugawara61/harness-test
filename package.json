@@ -7,6 +7,7 @@
   "devDependencies": {
     "@ksugawara61/code-lint": "file:vendor/ksugawara61-code-lint-0.1.0.tgz",
     "@ksugawara61/spec": "file:vendor/ksugawara61-spec-0.1.0.tgz",
+    "@storybook/react-vite": "^10.6.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
@@ -20,6 +21,7 @@
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
     "oxlint-tsgolint": "^7.0.2004",
+    "storybook": "^10.6.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.5"
@@ -32,6 +34,7 @@
   "private": true,
   "scripts": {
     "build": "vite build",
+    "build:storybook": "storybook build",
     "dev": "vite",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
@@ -39,6 +42,7 @@
     "lint": "oxlint && pnpm lint:json",
     "lint:json": "code-lint-sort-json-keys package.json .oxlintrc.json tsconfig.json",
     "preview": "vite preview",
+    "storybook": "storybook dev -p 6006",
     "test": "mkdir -p coverage && vitest run && check-spec-coverage .",
     "typecheck": "tsc --noEmit"
   },
