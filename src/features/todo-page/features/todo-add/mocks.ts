@@ -1,8 +1,12 @@
-import { type HttpHandler, http, HttpResponse } from "msw";
-import { TODOS_PATH } from "@/api/todo.ts";
-import { createTodoHandlers } from "@/mocks/handlers.ts";
+import { HttpResponse, type RequestHandler } from "msw";
+import { CreateTodoMutation } from "@/api/todo.ts";
+import { createTodoHandlers, graphqlApi } from "@/mocks/handlers.ts";
 
 export const TodoAddMocks = {
-  Error: [http.post(TODOS_PATH, () => new HttpResponse(null, { status: 500 }))],
+  Error: [
+    graphqlApi.mutation(CreateTodoMutation, () =>
+      HttpResponse.json({ errors: [{ message: "作成に失敗しました" }] }),
+    ),
+  ],
   Success: createTodoHandlers(),
-} satisfies Record<string, HttpHandler[]>;
+} satisfies Record<string, RequestHandler[]>;

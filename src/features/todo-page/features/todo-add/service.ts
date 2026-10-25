@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { useState } from "react";
 import { createTodo, todosQueryOptions } from "@/api/todo.ts";
 
 export const useService = () => {
@@ -17,12 +17,12 @@ export const useService = () => {
   const trimmedTitle = title.trim();
   const canSubmit = trimmedTitle !== "" && !isPending;
 
-  const handleChangeTitle = (event: ChangeEvent<HTMLInputElement>) => {
-    setTitle(event.target.value);
+  const handleChangeTitle = (text: string) => {
+    setTitle(text);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  // 追加ボタンと、入力欄で Enter を押したときに呼ぶ
+  const handleSubmit = () => {
     if (!canSubmit) return;
     mutate({ title: trimmedTitle });
   };

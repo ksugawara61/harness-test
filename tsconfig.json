@@ -13,6 +13,13 @@
     "paths": {
       "@/*": ["./src/*"]
     },
+    "plugins": [
+      {
+        "name": "gql.tada/ts-plugin",
+        "schema": "./src/graphql/schema.graphql",
+        "tadaOutputLocation": "./src/graphql/graphql-env.d.ts"
+      }
+    ],
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,5 +27,13 @@
     "types": ["msw/vite/client", "node", "vite/client"],
     "verbatimModuleSyntax": true
   },
-  "include": [".storybook", "oxfmt.config.mts", "src", "vite.config.ts"]
+  "extends": "expo/tsconfig.base",
+  "include": [
+    ".storybook",
+    "codegen.ts",
+    "oxfmt.config.mts",
+    "scripts",
+    "src",
+    "vite.config.ts"
+  ]
 }

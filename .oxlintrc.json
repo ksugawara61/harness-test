@@ -1,7 +1,11 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "extends": ["./node_modules/@ksugawara61/code-lint/oxlintrc.json"],
-  "ignorePatterns": ["dist", "src/route-tree.gen.ts"],
+  "ignorePatterns": [
+    "dist",
+    "src/graphql/*.generated.ts",
+    "src/graphql/graphql-env.d.ts"
+  ],
   "options": {
     "typeAware": true
   },
@@ -26,9 +30,10 @@
         "code-lint/no-logic-in-routes": [
           "error",
           {
-            "allowHooks": ["useParams", "useSearch"]
+            "allowHooks": ["useLocalSearchParams", "useServerDocumentContext"]
           }
-        ]
+        ],
+        "import/no-default-export": "off"
       }
     },
     {
@@ -78,7 +83,7 @@
         "code-lint/no-router-in-use-service-return": [
           "error",
           {
-            "hooks": ["useNavigate", "useRouter"]
+            "hooks": ["useNavigation", "useRouter"]
           }
         ],
         "code-lint/use-service-handle-only": "error"
@@ -125,6 +130,7 @@
         ".dependency-cruiser.mjs",
         ".storybook/main.ts",
         ".storybook/preview.tsx",
+        "codegen.ts",
         "oxfmt.config.mts",
         "vite.config.ts"
       ],

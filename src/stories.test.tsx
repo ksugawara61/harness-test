@@ -4,7 +4,7 @@ import {
   setProjectAnnotations,
   type StoryObj,
 } from "@storybook/react-vite";
-import type { HttpHandler } from "msw";
+import type { RequestHandler } from "msw";
 import { beforeAll, describe, it, vi } from "vitest";
 import preview from "../.storybook/preview.tsx";
 
@@ -16,7 +16,7 @@ vi.mock("virtual:msw", async () => {
   return {
     network: {
       enable: () => undefined,
-      resetHandlers: (...handlers: HttpHandler[]) => {
+      resetHandlers: (...handlers: RequestHandler[]) => {
         server.resetHandlers(...handlers);
       },
     },

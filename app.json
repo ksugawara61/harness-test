@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "やること",
+    "platforms": ["web"],
+    "plugins": ["expo-router"],
+    "slug": "harness-test",
+    "updates": {
+      "enabled": false
+    },
+    "web": {
+      "output": "static"
+    }
+  }
+}

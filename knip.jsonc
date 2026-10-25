@@ -1,7 +1,5 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  // TanStack Router が生成するルートの木。使わない型も export するため、指摘の対象から外す
-  "ignore": ["src/route-tree.gen.ts"],
   // dependency-cruiser が .dependency-cruiser.mjs の parser: "swc" で読み込むため、import されない
   "ignoreDependencies": ["@swc/core"],
 }

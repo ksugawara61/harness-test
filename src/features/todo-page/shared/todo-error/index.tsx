@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { StyleSheet, View } from "react-native";
 import { Alert } from "@/ui/alert/index.tsx";
 import { Button } from "@/ui/button/index.tsx";
 import { useService } from "./service.ts";
@@ -13,11 +14,18 @@ export const TodoError = ({ children }: Props) => {
   if (isDismissed) return null;
 
   return (
-    <div className="todo-error">
-      <Alert>{children}</Alert>
-      <Button label="エラーを閉じる" onClick={handleDismiss} type="button">
+    <View style={styles.error}>
+      <View style={styles.message}>
+        <Alert>{children}</Alert>
+      </View>
+      <Button label="エラーを閉じる" onPress={handleDismiss}>
         閉じる
       </Button>
-    </div>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  error: { alignItems: "center", flexDirection: "row", gap: 8, width: "100%" },
+  message: { flex: 1 },
+});
