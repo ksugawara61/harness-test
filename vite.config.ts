@@ -1,12 +1,13 @@
 import { resolve } from "node:path";
 import { SpecCoverageReporter } from "@ksugawara61/spec/reporter";
-import react from "@vitejs/plugin-react";
 import { msw } from "msw/vite";
 import { defineConfig } from "vitest/config";
 
-// アプリは Expo（Metro）でビルドし、Vite は Vitest と Storybook だけで使う
+// アプリは Expo（Metro）でビルドし、Vite は Vitest と Storybook だけで使う。
+// JSX は Vite が tsconfig.json の jsx（react-jsx）で変換する。
+// Storybook は @storybook/react-native-web-vite が React のプラグインを足すため、ここでは足さない
 export default defineConfig({
-  plugins: [react(), msw()],
+  plugins: [msw()],
   resolve: {
     alias: [
       // tsconfig.json の paths と同じく、@/ を src/ に解決する

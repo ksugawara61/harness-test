@@ -1,4 +1,4 @@
-import type { Decorator, Preview } from "@storybook/react-vite";
+import type { Decorator, Preview } from "@storybook/react-native-web-vite";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { RequestHandler } from "msw";
 import { network } from "virtual:msw";

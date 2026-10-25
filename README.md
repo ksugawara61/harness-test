@@ -333,7 +333,11 @@ export const Success: Story = {
 ブラウザの MSW（`virtual:msw`）はテストでは `msw/node` の `server` に差し替えている。
 
 Vitest と Storybook は Expo（Metro）ではなく Vite で動かす。
-`vite.config.ts` で `react-native` を `react-native-web` に置き換えるため、web のアプリと同じ要素で描画される。
+Storybook は `@storybook/react-native-web-vite` を使い、`react-native` を `react-native-web` で描画する。
+Vitest は `vite.config.ts` の `resolve.alias` で `react-native` を `react-native-web` に置き換える。
+どちらも web のアプリと同じ要素で描画される。
+`@storybook/react-native-web-vite` が React の Vite プラグインを足すため、`vite.config.ts` には `@vitejs/plugin-react` を入れない（二重に掛かるのを避ける）。
+JSX は Vite が `tsconfig.json` の `jsx`（`react-jsx`）で変換する。
 graphql は Vite と Node で解決先が分かれて別のモジュールとして読まれるため、Vitest では `@graphql-tools` も Vite で解決させている（`test.server.deps.inline`）。
 Storybook では、Expo がビルド時に埋め込む `process.env.EXPO_PUBLIC_*` を `.storybook/main.ts` の `define` で埋めている。
 

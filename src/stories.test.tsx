@@ -3,7 +3,7 @@ import {
   type Meta,
   setProjectAnnotations,
   type StoryObj,
-} from "@storybook/react-vite";
+} from "@storybook/react-native-web-vite";
 import type { RequestHandler } from "msw";
 import { beforeAll, describe, it, vi } from "vitest";
 import preview from "../.storybook/preview.tsx";
