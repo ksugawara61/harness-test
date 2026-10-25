@@ -50,7 +50,6 @@
       "files": [
         "src/*.ts",
         "src/*.tsx",
-        "src/api/**",
         "src/app/*.tsx",
         "src/graphql/**",
         "src/lib/**",
@@ -106,6 +105,10 @@
               {
                 "group": ["@/app", "@/app/**", "@/route-tree.gen*"],
                 "message": "フィーチャーからルーティング（src/app）を import しないでください。パスのパラメーターはルートのファイルで読み、ページに Props で渡します"
+              },
+              {
+                "group": ["@tanstack/react-query", "@/lib/gql.ts"],
+                "message": "フィーチャーからは TanStack Query と gqlFetch を直接使わず、@/lib/graphql-client.ts の useGraphQLQuery・useGraphQLMutation で操作を送ってください"
               },
               {
                 "allowTypeImports": true,

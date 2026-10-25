@@ -1,21 +1,17 @@
-import { HttpResponse, type RequestHandler } from "msw";
+import type { RequestHandler } from "msw";
 import { type FragmentOf, maskFragments } from "@/graphql/client.ts";
-import { graphqlApi } from "@/mocks/handlers.ts";
+import { createMockMutation, mockErrorResolver } from "@/mocks/graphql.ts";
 import { buildTodo } from "@/test-utils/factories.ts";
 import { DeleteTodoMutation } from "./graphqls/delete-todo-mutation.ts";
 import { TodoItemFragment } from "./graphqls/todo-item-fragment.ts";
 import { UpdateTodoMutation } from "./graphqls/update-todo-mutation.ts";
 
-const errors = [{ message: "更新に失敗しました" }];
+const errorResolver = mockErrorResolver("更新に失敗しました");
 
 export const TodoItemMocks = {
   Error: [
-    graphqlApi.mutation(UpdateTodoMutation, () =>
-      HttpResponse.json({ errors }),
-    ),
-    graphqlApi.mutation(DeleteTodoMutation, () =>
-      HttpResponse.json({ errors }),
-    ),
+    createMockMutation(UpdateTodoMutation, errorResolver),
+    createMockMutation(DeleteTodoMutation, errorResolver),
   ],
 } satisfies Record<string, RequestHandler[]>;
 

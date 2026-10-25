@@ -18,6 +18,10 @@ export const Empty: Story = {
   parameters: { msw: { handlers: TodoListMocks.Empty } },
 };
 
+export const Loading: Story = {
+  parameters: { msw: { handlers: TodoListMocks.Loading } },
+};
+
 export const Failure: Story = {
   parameters: { msw: { handlers: TodoListMocks.Error } },
 };

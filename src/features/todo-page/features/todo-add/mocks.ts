@@ -1,11 +1,13 @@
-import { HttpResponse, type RequestHandler } from "msw";
-import { createTodoHandlers, graphqlApi } from "@/mocks/handlers.ts";
+import type { RequestHandler } from "msw";
+import { createMockMutation, mockErrorResolver } from "@/mocks/graphql.ts";
+import { createTodoHandlers } from "@/mocks/handlers.ts";
 import { CreateTodoMutation } from "./graphqls/create-todo-mutation.ts";
 
 export const TodoAddMocks = {
   Error: [
-    graphqlApi.mutation(CreateTodoMutation, () =>
-      HttpResponse.json({ errors: [{ message: "作成に失敗しました" }] }),
+    createMockMutation(
+      CreateTodoMutation,
+      mockErrorResolver("作成に失敗しました"),
     ),
   ],
   Success: createTodoHandlers(),

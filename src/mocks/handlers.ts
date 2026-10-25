@@ -1,12 +1,8 @@
 import { graphql as execute } from "graphql";
 import { HttpResponse, type RequestHandler } from "msw";
-import { graphql } from "msw/graphql";
-import { GRAPHQL_PATH } from "@/graphql/client.ts";
 import type { Todo } from "@/server/graphql/resolvers.generated.ts";
+import { graphqlApi } from "./graphql.ts";
 import { mockSchema } from "./schema.ts";
-
-// アプリの GraphQL API（オリジンは問わない）。mocks.ts のハンドラーもここから作る
-export const graphqlApi = graphql.link(`*${GRAPHQL_PATH}`);
 
 const resetters = new Set<() => void>();
 

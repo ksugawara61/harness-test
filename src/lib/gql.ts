@@ -20,7 +20,7 @@ class GraphQLRequestError extends Error {
 // gql.tada で型付けしたドキュメントを送り、data を返す。errors があれば例外にする
 export const gqlFetch = async <Result, Variables>(
   document: TadaDocumentNode<Result, Variables>,
-  variables: Variables,
+  variables?: Variables,
 ): Promise<Result> => {
   const response = await apiFetch(GRAPHQL_PATH, {
     body: JSON.stringify({ query: print(document), variables }),
