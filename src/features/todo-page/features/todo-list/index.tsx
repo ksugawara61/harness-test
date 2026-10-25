@@ -22,7 +22,7 @@ export const TodoList = () => {
     <View aria-label="やること一覧" role="region">
       <View role="list" style={styles.list}>
         {todos.map((todo) => (
-          <TodoItem key={todo.id} todo={todo} />
+          <TodoItem key={todo.id} maskedTodo={todo} />
         ))}
       </View>
       <TodoRemaining count={remainingCount} />

@@ -1,16 +1,8 @@
-import { queryOptions } from "@tanstack/react-query";
 import { graphql, type ResultOf, type VariablesOf } from "@/graphql/client.ts";
 import { gqlFetch } from "@/lib/gql.ts";
 
-export const TodosQuery = graphql(`
-  query Todos {
-    todos {
-      completed
-      id
-      title
-    }
-  }
-`);
+// 一覧のクエリ（todo-list の query.ts）の key。追加・更新・削除のあとに、この key で一覧を取り直す
+export const todosQueryKey = ["todos"];
 
 export const CreateTodoMutation = graphql(`
   mutation CreateTodo($input: CreateTodoInput!) {
@@ -38,7 +30,7 @@ export const DeleteTodoMutation = graphql(`
   }
 `);
 
-export type Todo = ResultOf<typeof TodosQuery>["todos"][number];
+type Todo = ResultOf<typeof CreateTodoMutation>["createTodo"];
 
 export type CreateTodoInput = VariablesOf<typeof CreateTodoMutation>["input"];
 
@@ -57,11 +49,3 @@ export const updateTodo = async (input: UpdateTodoInput): Promise<Todo> => {
 export const deleteTodo = async (id: string): Promise<void> => {
   await gqlFetch(DeleteTodoMutation, { id });
 };
-
-export const todosQueryOptions = queryOptions({
-  queryFn: async () => {
-    const { todos } = await gqlFetch(TodosQuery, {});
-    return todos;
-  },
-  queryKey: ["todos"],
-});

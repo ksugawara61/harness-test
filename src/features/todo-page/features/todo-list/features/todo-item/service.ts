@@ -1,19 +1,17 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  deleteTodo,
-  type Todo,
-  todosQueryOptions,
-  updateTodo,
-} from "@/api/todo.ts";
+import { deleteTodo, todosQueryKey, updateTodo } from "@/api/todo.ts";
+import { type FragmentOf, readFragment } from "@/graphql/client.ts";
+import { TodoItemFragment } from "./fragment.ts";
 
 type Params = {
-  todo: Todo;
+  maskedTodo: FragmentOf<typeof TodoItemFragment>;
 };
 
-export const useService = ({ todo }: Params) => {
+export const useService = ({ maskedTodo }: Params) => {
+  const todo = readFragment(TodoItemFragment, maskedTodo);
   const queryClient = useQueryClient();
   const invalidateTodos = () =>
-    queryClient.invalidateQueries({ queryKey: todosQueryOptions.queryKey });
+    queryClient.invalidateQueries({ queryKey: todosQueryKey });
   const toggle = useMutation({
     mutationFn: updateTodo,
     onSuccess: invalidateTodos,
@@ -32,10 +30,12 @@ export const useService = ({ todo }: Params) => {
   };
 
   return {
+    completed: todo.completed,
     deleteLabel: `「${todo.title}」を削除`,
     handleDelete,
     handleToggle,
     isError: toggle.isError || remove.isError,
     isPending: toggle.isPending || remove.isPending,
+    title: todo.title,
   };
 };

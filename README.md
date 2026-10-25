@@ -61,7 +61,7 @@ src/
   lib/
     api.ts               # apiFetch。API への fetch の唯一の入口。モックのときはアプリの中で応答する
     gql.ts               # gqlFetch。gql.tada のドキュメントを送り、data を返す
-  api/todo.ts            # GraphQL の操作（gql.tada）と TanStack Query の queryOptions
+  api/todo.ts            # ミューテーション（gql.tada）と、一覧を取り直すときの query key
   mocks/
     schema.ts            # メモリ上のストアを読み書きするリゾルバと、モックのスキーマ
     handlers.ts          # すべての操作をモックのスキーマで実行する MSW のハンドラー（開発サーバー・テスト・story で共用）
@@ -72,10 +72,12 @@ src/
       features/
         todo-add/        # 追加フォーム
         todo-list/       # 一覧
+          query.ts       # 一覧のクエリ。todo-item の fragment を取り込む
           components/
             todo-remaining.tsx # 未完了の件数（ロジックの無い部品）
           features/
             todo-item/   # 1 件分の完了切り替えと削除
+              fragment.ts # 1 件分の描画に使うフィールドの fragment
   ui/                    # 見た目だけを持つ部品（button・text-field・checkbox・alert）。部品ごとに index.tsx と stories.tsx を置く
     theme.ts             # 色。src/index.css の CSS 変数を参照する
   index.css              # 色の CSS 変数（ライト・ダーク）と body の背景
@@ -126,30 +128,47 @@ SDL は文字列の TS モジュールにして渡し、サーバーで `.graphq
 gql.tada の CLI と TypeScript のプラグインは TypeScript の API を使い、TypeScript 7 では動かないため、TypeScript は 6 にしている。
 `pnpm codegen:check` は、`gql-tada check` でクエリがスキーマに合っているかも検査する。
 
-クエリとミューテーションは `src/api/todo.ts` に `graphql()` で書く。
+クエリとミューテーションは `graphql()` で書く。
 結果と変数の型はスキーマから付くため、スキーマに無いフィールドを書くと typecheck が落ちる。
 送るのは `src/lib/gql.ts` の `gqlFetch` で、`fetch` は `src/lib/api.ts` の `apiFetch` からしか呼ばない。
 
+クエリで取るフィールドは、harness の `graphql-fragment.md` に従い、使うフィーチャーの横に fragment で書く（fragment colocation）。
+1 件分の描画に使うフィールドは、`todo-item` の `fragment.ts` に書く。
+一覧のクエリは送る側の `todo-list` の `query.ts` に置き、一覧が自分で使うフィールドと `...TodoItem` だけを書く。
+`todo-item` に表示を足すときは、`fragment.ts` だけを直せばよい。
+
 ```ts
-// src/api/todo.ts
-export const TodosQuery = graphql(`
-  query Todos {
-    todos {
-      completed
-      id
-      title
-    }
+// src/features/todo-page/features/todo-list/features/todo-item/fragment.ts
+export const TodoItemFragment = graphql(`
+  fragment TodoItem on Todo {
+    completed
+    id
+    title
   }
 `);
 
-export const todosQueryOptions = queryOptions({
-  queryFn: async () => {
-    const { todos } = await gqlFetch(TodosQuery, {});
-    return todos;
-  },
-  queryKey: ["todos"],
-});
+// src/features/todo-page/features/todo-list/query.ts
+export const TodosQuery = graphql(
+  `
+    query Todos {
+      todos {
+        completed
+        id
+        ...TodoItem
+      }
+    }
+  `,
+  [TodoItemFragment],
+);
 ```
+
+`todo-list` は結果を masked のまま `<TodoItem maskedTodo={todo} />` に渡す。
+`todo-item` は `service.ts` の `useService` の冒頭で `readFragment(TodoItemFragment, maskedTodo)` を呼び、読んだ値を返す。
+`readFragment` に同じディレクトリの `fragment.ts` 以外の fragment を渡すと、oxlint の `use-own-fragment` が落とす。
+`graphql`・`readFragment`・`maskFragments`・`FragmentOf` は、`src/graphql/client.ts` から import する。
+
+一覧のクエリはサブフィーチャーの fragment を取り込むため、フィーチャーの外の `src/api/` には置けない。
+`src/api/todo.ts` には、`todo-add`・`todo-item` が使うミューテーションと、追加・更新・削除のあとに一覧を取り直すための `todosQueryKey` を置く。
 
 サーバーは、`src/app/api/[...route]+api.ts` がすべてのメソッドを `src/server/app.ts` の Hono のアプリに渡す。
 ルーティングは Hono の側だけで書き、Expo の `+api.ts` や `+middleware.ts` は足さない。
@@ -234,6 +253,8 @@ import { TodoError } from "../../../../shared/todo-error/index.tsx";
 | `service.ts`  | フックとロジックをまとめた `useService`                                       |
 | `spec.ts`     | `defineSpec` で宣言した仕様。ケースごとに given・when・yields を書く          |
 | `mocks.ts`    | テストと story で使う API のモック。`Record<string, RequestHandler[]>` にする |
+| `fragment.ts` | Props で受け取るデータの fragment（クエリの結果を受け取るフィーチャーだけ）   |
+| `query.ts`    | フィーチャーが送るクエリと queryOptions（クエリを送るフィーチャーだけ）       |
 | `test.tsx`    | `spec.ts` の各項目を `specIt` で確かめる仕様テスト                            |
 | `stories.tsx` | Storybook の story。`mocks.ts` のケースごとに表示を並べる                     |
 
@@ -241,21 +262,21 @@ import { TodoError } from "../../../../shared/todo-error/index.tsx";
 
 `.oxlintrc.json` で code-lint の `oxlintrc.json` を `extends` し、規約のルールをパスごとに有効にしている。
 
-| 対象                                                  | ルール                                                                                                         |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `src/app/**`                                          | `no-logic-in-routes`（`useLocalSearchParams`・`useServerDocumentContext` だけ許す）                            |
-| `src/features/**/*.tsx`                               | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など                            |
-| `src/features/**/index.tsx`                           | `no-multiple-feature-exports`                                                                                  |
-| `src/features/**/index.tsx`・`src/ui/*/index.tsx`     | `use-stories-file`                                                                                             |
-| `src/**/stories.tsx`                                  | `no-storybook-title`                                                                                           |
-| `src/features/**`                                     | `use-service-file-name`・`use-feature-directory`・`no-restricted-imports`（`@/app`・`@/server`）               |
-| `src/api/**` などクライアントのコード・`src/mocks/**` | `no-restricted-imports`（`@/server` は `import type` だけ。`src/mocks/**` は `type-defs.generated.ts` も許す） |
-| `src/features/**/components/**`                       | `no-logic-in-components`                                                                                       |
-| `src/features/**/service.ts`                          | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return`                           |
-| `src/features/**/mocks.ts`                            | `use-mocks-record`                                                                                             |
-| `src/ui/**/*.tsx`                                     | `no-style-prop-in-ui`・`no-test-id`                                                                            |
-| `src/**/test.tsx`                                     | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など                                     |
-| `src/**`                                              | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`・`use-nearest-shared-import`    |
+| 対象                                                  | ルール                                                                                                               |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `src/app/**`                                          | `no-logic-in-routes`（`useLocalSearchParams`・`useServerDocumentContext` だけ許す）                                  |
+| `src/features/**/*.tsx`                               | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など                                  |
+| `src/features/**/index.tsx`                           | `no-multiple-feature-exports`                                                                                        |
+| `src/features/**/index.tsx`・`src/ui/*/index.tsx`     | `use-stories-file`                                                                                                   |
+| `src/**/stories.tsx`                                  | `no-storybook-title`                                                                                                 |
+| `src/features/**`                                     | `use-service-file-name`・`use-feature-directory`・`use-own-fragment`・`no-restricted-imports`（`@/app`・`@/server`） |
+| `src/api/**` などクライアントのコード・`src/mocks/**` | `no-restricted-imports`（`@/server` は `import type` だけ。`src/mocks/**` は `type-defs.generated.ts` も許す）       |
+| `src/features/**/components/**`                       | `no-logic-in-components`                                                                                             |
+| `src/features/**/service.ts`                          | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return`                                 |
+| `src/features/**/mocks.ts`                            | `use-mocks-record`                                                                                                   |
+| `src/ui/**/*.tsx`                                     | `no-style-prop-in-ui`・`no-test-id`                                                                                  |
+| `src/**/test.tsx`                                     | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など                                           |
+| `src/**`                                              | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`・`use-nearest-shared-import`          |
 
 Expo Router のルートは default export が要るため、`src/app/**` では `import/no-default-export` を切っている。
 `+html.tsx` は、Expo が差し込む script と CSS を `useServerDocumentContext` から受け取って描画するため、このフックだけはルートのファイルでも許している。
@@ -322,7 +343,7 @@ export const spec = defineSpec("todo-add", {
 
 モックするのは API の境界だけで、MSW で差し替える。
 `mocks.ts` は `{ ... } satisfies Record<string, RequestHandler[]>` にし、値に関数を置かない。
-失敗するケースは、`src/mocks/handlers.ts` の `graphqlApi` に `src/api/todo.ts` の操作を渡し、`errors` を返すハンドラーにする。
+失敗するケースは、`src/mocks/handlers.ts` の `graphqlApi` に操作（`src/api/todo.ts` のミューテーションや `query.ts` のクエリ）を渡し、`errors` を返すハンドラーにする。
 
 ```ts
 // src/features/todo-page/features/todo-add/mocks.ts
@@ -337,6 +358,24 @@ export const TodoAddMocks = {
 ```
 
 テストはケース名で引いて `server.use(...TodoListMocks.Success)` と書く。
+
+fragment を Props で受け取る `todo-item` は、Props に渡す値も `mocks.ts` に `TodoItemFragmentMocks` で置く。
+`maskFragments` で masked にした値を `satisfies Record<string, FragmentOf<typeof TodoItemFragment>>` にし、テストと story では `<TodoItem maskedTodo={TodoItemFragmentMocks.Active} />` と書く。
+親の一覧のモックは、`createTodoHandlers` に初期データを渡すだけでよい。
+モックの API はスキーマでクエリを実行するため、`...TodoItem` のフィールドもスキーマが選んで返す。
+
+```ts
+// src/features/todo-page/features/todo-list/features/todo-item/mocks.ts
+export const TodoItemFragmentMocks = {
+  /** 未完了の「牛乳を買う」 */
+  Active: maskFragments(
+    [TodoItemFragment],
+    buildTodo({ id: "todo-1", title: "牛乳を買う" }),
+  ),
+  // ...
+} satisfies Record<string, FragmentOf<typeof TodoItemFragment>>;
+```
+
 メモリ上のストアはテストの間で共有されるため、`setup.ts` が `afterEach` で `resetTodoStores()` を呼んで初期データに戻す。
 子のフィーチャーで確かめた振る舞いは親で確かめない。
 `todo-page` は、追加・完了・削除のあとに一覧が取り直されることだけを確かめる。

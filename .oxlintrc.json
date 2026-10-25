@@ -97,6 +97,7 @@
       "files": ["src/features/**"],
       "rules": {
         "code-lint/use-feature-directory": "error",
+        "code-lint/use-own-fragment": "error",
         "code-lint/use-service-file-name": "error",
         "no-restricted-imports": [
           "error",

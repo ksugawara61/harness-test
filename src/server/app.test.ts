@@ -1,13 +1,12 @@
 // @vitest-environment node
 import { print } from "graphql";
 import { describe, expect, it } from "vitest";
-import {
-  CreateTodoMutation,
-  TodosQuery,
-  UpdateTodoMutation,
-} from "@/api/todo.ts";
+import { CreateTodoMutation, UpdateTodoMutation } from "@/api/todo.ts";
 import { GRAPHQL_PATH } from "@/graphql/client.ts";
 import { app } from "./app.ts";
+
+// 一覧のクエリはフィーチャー（todo-list）が fragment から組み立てるため、ここでは使わずに書く
+const TODOS_QUERY = "query Todos { todos { completed id title } }";
 
 // サーバーを立てずに、Hono のアプリへ HTTP のリクエストを渡して確かめる
 const post = async (query: string, variables: Record<string, unknown>) => {
@@ -24,7 +23,7 @@ describe("/api/graphql", () => {
     const created = await post(print(CreateTodoMutation), {
       input: { title: "牛乳を買う" },
     });
-    const { body } = await post(print(TodosQuery), {});
+    const { body } = await post(TODOS_QUERY, {});
 
     expect(created.status).toBe(200);
     expect(body.data.todos).toContainEqual(created.body.data.createTodo);
