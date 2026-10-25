@@ -19,7 +19,6 @@
     "react-native-web": "~0.21.4"
   },
   "devDependencies": {
-    "@gql.tada/internal": "1.2.2",
     "@graphql-codegen/cli": "^7.4.6",
     "@graphql-codegen/typescript": "^6.1.2",
     "@graphql-codegen/typescript-resolvers": "^6.1.1",
@@ -41,7 +40,7 @@
     "oxlint": "^1.89.0",
     "oxlint-tsgolint": "^7.0.2004",
     "storybook": "^10.6.3",
-    "typescript": "^7.0.2",
+    "typescript": "^6.0.3",
     "vite": "^8.3.4",
     "vitest": "^5.0.5"
   },
@@ -55,8 +54,8 @@
   "scripts": {
     "build": "expo export -p web",
     "build:storybook": "storybook build",
-    "codegen": "node scripts/codegen.ts && graphql-codegen",
-    "codegen:check": "pnpm codegen && git diff --exit-code -- src/graphql",
+    "codegen": "node scripts/gen-typedefs.ts && graphql-codegen && gql-tada generate output",
+    "codegen:check": "pnpm codegen && git diff --exit-code -- src/graphql && gql-tada check",
     "dev": "EXPO_PUBLIC_API_MOCK=offline expo start --web",
     "format": "oxfmt",
     "format:check": "oxfmt --check",

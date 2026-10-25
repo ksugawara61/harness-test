@@ -34,7 +34,7 @@ pnpm build:storybook # storybook-static/ に Storybook を出力する
 .storybook/              # Storybook の設定。preview で QueryClient と MSW を story ごとに用意する
 app.json                 # Expo の設定。web.output: "static" で、ページごとに HTML を出力する
 codegen.ts               # graphql-codegen の設定（モックのリゾルバの型）
-scripts/codegen.ts       # schema.graphql から SDL の文字列と gql.tada の型を生成する
+scripts/gen-typedefs.ts  # schema.graphql から SDL の文字列を生成する
 src/
   app/                   # ルーティング（Expo Router の file-based routing）。ページを描画するだけ
     +html.tsx            # web の静的レンダリングで使う HTML の外枠（lang・title）
@@ -108,9 +108,9 @@ import は親から直下のサブフィーチャーへの向きだけにし、�
 | `src/graphql/type-defs.generated.ts` | SDL の文字列                    | `src/mocks/schema.ts`                |
 | `src/graphql/resolvers.generated.ts` | リゾルバの型（graphql-codegen） | `src/mocks/schema.ts`                |
 
-gql.tada の CLI（`gql-tada generate output`）は TypeScript の API を使い、TypeScript 7 では動かない。
-そのため、`scripts/codegen.ts` が CLI の中で使う `@gql.tada/internal` の関数を直接呼んで、`graphql-env.d.ts` を書き出す。
-`tsconfig.json` の `gql.tada/ts-plugin` は、TypeScript 6 以前のエディターで補完を出すためだけに置いている。
+`graphql-env.d.ts` は gql.tada の CLI（`gql-tada generate output`）が、`tsconfig.json` の `gql.tada/ts-plugin` の設定を読んで書き出す。
+gql.tada の CLI と TypeScript のプラグインは TypeScript の API を使い、TypeScript 7 では動かないため、TypeScript は 6 にしている。
+`pnpm codegen:check` は、`gql-tada check` でクエリがスキーマに合っているかも検査する。
 
 クエリとミューテーションは `src/api/todo.ts` に `graphql()` で書く。
 結果と変数の型はスキーマから付くため、スキーマに無いフィールドを書くと typecheck が落ちる。
