@@ -61,8 +61,9 @@ src/
   lib/
     api.ts               # apiFetch。API への fetch の唯一の入口。モックのときはアプリの中で応答する
     gql.ts               # gqlFetch。gql.tada のドキュメントを送り、data を返す
-  api/todo.ts            # 追加・更新・削除のあとに一覧を取り直すときの query key
+    graphql-client.ts    # useGraphQLQuery・useGraphQLMutation。TanStack Query を包み、query key と取り直しを受け持つ
   mocks/
+    graphql.ts           # 操作からハンドラーを作る createMockQuery・createMockMutation と、失敗・読み込み中の resolver
     schema.ts            # メモリ上のストアを読み書きするリゾルバと、モックのスキーマ
     handlers.ts          # すべての操作をモックのスキーマで実行する MSW のハンドラー（開発サーバー・テスト・story で共用）
   features/
@@ -136,20 +137,21 @@ gql.tada の CLI と TypeScript のプラグインは TypeScript の API を使�
 
 クエリとミューテーションは `graphql()` で書く。
 結果と変数の型はスキーマから付くため、スキーマに無いフィールドを書くと typecheck が落ちる。
-送るのは `src/lib/gql.ts` の `gqlFetch` で、`fetch` は `src/lib/api.ts` の `apiFetch` からしか呼ばない。
+フィーチャーは、`src/lib/graphql-client.ts` の `useGraphQLQuery`・`useGraphQLMutation` に操作を渡して送る（「クエリと mutation を送るフック」を参照）。
+フックは `src/lib/gql.ts` の `gqlFetch` で送り、`fetch` は `src/lib/api.ts` の `apiFetch` からしか呼ばない。
 
 操作（fragment・query・mutation）は、harness の `graphql.md` に従い、使うフィーチャーの `graphqls/<operation-name>.ts` に 1 操作 1 ファイルで置く。
 ファイル名は種類（`-fragment`・`-query`・`-mutation`）で終え、export は操作 1 つだけで、名前はファイル名の PascalCase にする。
 
-| 操作                 | 置き場所                                     | 使う側                        |
-| -------------------- | -------------------------------------------- | ----------------------------- |
-| `TodoItemFragment`   | `todo-item/graphqls/todo-item-fragment.ts`   | `todo-item` の `readFragment` |
-| `TodosQuery`         | `todo-list/graphqls/todos-query.ts`          | `todo-list` の `useQuery`     |
-| `CreateTodoMutation` | `todo-add/graphqls/create-todo-mutation.ts`  | `todo-add` の `useMutation`   |
-| `UpdateTodoMutation` | `todo-item/graphqls/update-todo-mutation.ts` | `todo-item` の `useMutation`  |
-| `DeleteTodoMutation` | `todo-item/graphqls/delete-todo-mutation.ts` | `todo-item` の `useMutation`  |
+| 操作                 | 置き場所                                     | 使う側                              |
+| -------------------- | -------------------------------------------- | ----------------------------------- |
+| `TodoItemFragment`   | `todo-item/graphqls/todo-item-fragment.ts`   | `todo-item` の `readFragment`       |
+| `TodosQuery`         | `todo-list/graphqls/todos-query.ts`          | `todo-list` の `useGraphQLQuery`    |
+| `CreateTodoMutation` | `todo-add/graphqls/create-todo-mutation.ts`  | `todo-add` の `useGraphQLMutation`  |
+| `UpdateTodoMutation` | `todo-item/graphqls/update-todo-mutation.ts` | `todo-item` の `useGraphQLMutation` |
+| `DeleteTodoMutation` | `todo-item/graphqls/delete-todo-mutation.ts` | `todo-item` の `useGraphQLMutation` |
 
-`queryOptions` と、`gqlFetch` で操作を送る関数は、`graphqls/` ではなく使うフィーチャーの `service.ts` に書く。
+`useGraphQLQuery`・`useGraphQLMutation` は、`graphqls/` ではなく使うフィーチャーの `service.ts` の `useService` で呼ぶ。
 ミューテーションの結果は使わずに一覧を取り直すため、`id` だけを返させる。
 
 1 件分の描画に使うフィールドは、`todo-item` の fragment に書く（fragment colocation）。
@@ -184,10 +186,8 @@ export const TodosQuery = graphql(
 `todo-list` は結果を masked のまま `<TodoItem maskedTodo={todo} />` に渡す。
 `todo-item` は `service.ts` の `useService` の冒頭で `readFragment(TodoItemFragment, maskedTodo)` を呼び、読んだ値を返す。
 `readFragment` に同じフィーチャーの `graphqls/` 以外の fragment を渡すと、oxlint の `use-own-fragment` が落とす。
-`graphql`・`readFragment`・`maskFragments`・`FragmentOf`・`VariablesOf` は、`src/graphql/client.ts` から import する。
+`graphql`・`readFragment`・`maskFragments`・`FragmentOf` は、`src/graphql/client.ts` から import する。
 
-`src/api/todo.ts` には、操作を置かない。
-`todo-add`・`todo-item` が追加・更新・削除のあとに一覧を取り直すための `todosQueryKey` だけを置く。
 `src/server/app.test.ts` は、フィーチャーの `graphqls/` を import できないため、確かめる操作を文字列で書く。
 
 サーバーは、`src/app/api/[...route]+api.ts` がすべてのメソッドを `src/server/app.ts` の Hono のアプリに渡す。
@@ -234,13 +234,44 @@ ES モジュールとして読ませたい設定とスクリプトは、`vite.co
 MSW とモックは動的 import で読み込むため、`EXPO_PUBLIC_API_MOCK` を付けないビルドには入らない。
 `apiFetch` は web ではページと同じオリジンの API Route に送る。`EXPO_PUBLIC_API_URL` を付けると、送り先のオリジンを変えられる。
 
+## クエリと mutation を送るフック
+
+フィーチャーは、TanStack Query の `useQuery`・`useMutation` と `gqlFetch` を直接使わず、`src/lib/graphql-client.ts` のフックに操作を渡す。
+curio の `@curio/graphql-client`（SWR）のフックにならい、query key と取り直しをフックの中に閉じ込めている。
+
+| フック               | 包むもの      | 第 2 引数                  |
+| -------------------- | ------------- | -------------------------- |
+| `useGraphQLQuery`    | `useQuery`    | `{ typenames, variables }` |
+| `useGraphQLMutation` | `useMutation` | `{ refetchTypes }`         |
+
+```ts
+// src/features/todo-page/features/todo-list/service.ts
+const { data, isError, isPending } = useGraphQLQuery(TodosQuery, {
+  typenames: ["Todo"],
+});
+
+// src/features/todo-page/features/todo-add/service.ts
+const { isError, isPending, mutate } = useGraphQLMutation(CreateTodoMutation, {
+  refetchTypes: ["Todo"],
+});
+```
+
+- query key は、フックが `["graphql", 操作の名前, 変数]` で作る。フィーチャーは query key を持たない
+- mutation が成功すると、`refetchTypes` のどれかの型を返すクエリを取り直す。取り直しが終わるまで `isPending` は `true` のまま
+- クエリが返す型は、キャッシュした結果に含まれる `__typename` と、`useGraphQLQuery` に渡した `typenames` を合わせたもの
+- 一覧のクエリは、空のとき結果から型を拾えないため、`typenames` に型を書く。`TodosQuery` は `__typename` を選ばないため、`typenames: ["Todo"]` を渡している
+- 成功したときだけ行う処理（入力欄を空にするなど）は、`mutate` の第 2 引数の `onSuccess` に書く
+
+取り直すクエリを型で選ぶため、mutation を送る `todo-add`・`todo-item` は、一覧のクエリも query key も import しない。
+フィーチャーから `@tanstack/react-query` と `@/lib/gql.ts` を import すると、oxlint の `no-restricted-imports` が落とす。
+
 ## import のパス
 
 `tsconfig.json` の `paths` と `vite.config.mts` の `resolve.alias` で、`@/` を `src/` に解決する。
 Vitest と Storybook も `vite.config.mts` を読むため、同じエイリアスが効く。
 
 同じ単位の内側は相対パスで、単位を越えるときは `@/` で import する。
-単位は、`src/features/` 直下のフィーチャー（サブフィーチャーを含む）・`src/` 直下のディレクトリ（`app`・`api`・`ui` など）・`src/` 直下のファイルの 3 種類。
+単位は、`src/features/` 直下のフィーチャー（サブフィーチャーを含む）・`src/` 直下のディレクトリ（`app`・`lib`・`ui` など）・`src/` 直下のファイルの 3 種類。
 
 ```ts
 // src/features/todo-page/features/todo-list/index.tsx
@@ -281,22 +312,22 @@ import { TodoError } from "../../../../shared/todo-error/index.tsx";
 
 `.oxlintrc.json` で code-lint の `oxlintrc.json` を `extends` し、規約のルールをパスごとに有効にしている。
 
-| 対象                                                  | ルール                                                                                                               |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `src/app/**`                                          | `no-logic-in-routes`（`useLocalSearchParams`・`useServerDocumentContext` だけ許す）                                  |
-| `src/features/**/*.tsx`                               | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など                                  |
-| `src/features/**/index.tsx`                           | `no-multiple-feature-exports`                                                                                        |
-| `src/features/**/index.tsx`・`src/ui/*/index.tsx`     | `use-stories-file`                                                                                                   |
-| `src/**/stories.tsx`                                  | `no-storybook-title`                                                                                                 |
-| `src/features/**`                                     | `use-service-file-name`・`use-feature-directory`・`use-own-fragment`・`no-restricted-imports`（`@/app`・`@/server`） |
-| `src/features/**/graphqls/*.ts`                       | `use-graphql-operation-file`                                                                                         |
-| `src/api/**` などクライアントのコード・`src/mocks/**` | `no-restricted-imports`（`@/server` は `import type` だけ。`src/mocks/**` は `type-defs.generated.ts` も許す）       |
-| `src/features/**/components/**`                       | `no-logic-in-components`                                                                                             |
-| `src/features/**/service.ts`                          | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return`                                 |
-| `src/features/**/mocks.ts`                            | `use-mocks-record`                                                                                                   |
-| `src/ui/**/*.tsx`                                     | `no-style-prop-in-ui`・`no-test-id`                                                                                  |
-| `src/**/test.tsx`                                     | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など                                           |
-| `src/**`                                              | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`・`use-nearest-shared-import`          |
+| 対象                                                  | ルール                                                                                                                                                        |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/**`                                          | `no-logic-in-routes`（`useLocalSearchParams`・`useServerDocumentContext` だけ許す）                                                                           |
+| `src/features/**/*.tsx`                               | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など                                                                           |
+| `src/features/**/index.tsx`                           | `no-multiple-feature-exports`                                                                                                                                 |
+| `src/features/**/index.tsx`・`src/ui/*/index.tsx`     | `use-stories-file`                                                                                                                                            |
+| `src/**/stories.tsx`                                  | `no-storybook-title`                                                                                                                                          |
+| `src/features/**`                                     | `use-service-file-name`・`use-feature-directory`・`use-own-fragment`・`no-restricted-imports`（`@/app`・`@/server`・`@tanstack/react-query`・`@/lib/gql.ts`） |
+| `src/features/**/graphqls/*.ts`                       | `use-graphql-operation-file`                                                                                                                                  |
+| `src/lib/**` などクライアントのコード・`src/mocks/**` | `no-restricted-imports`（`@/server` は `import type` だけ。`src/mocks/**` は `type-defs.generated.ts` も許す）                                                |
+| `src/features/**/components/**`                       | `no-logic-in-components`                                                                                                                                      |
+| `src/features/**/service.ts`                          | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return`                                                                          |
+| `src/features/**/mocks.ts`                            | `use-mocks-record`                                                                                                                                            |
+| `src/ui/**/*.tsx`                                     | `no-style-prop-in-ui`・`no-test-id`                                                                                                                           |
+| `src/**/test.tsx`                                     | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など                                                                                    |
+| `src/**`                                              | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`・`use-nearest-shared-import`                                                   |
 
 Expo Router のルートは default export が要るため、`src/app/**` では `import/no-default-export` を切っている。
 `+html.tsx` は、Expo が差し込む script と CSS を `useServerDocumentContext` から受け取って描画するため、このフックだけはルートのファイルでも許している。
@@ -304,7 +335,7 @@ Expo Router のルートは default export が要るため、`src/app/**` では
 `.graphql` は oxlint が読めないため、`pnpm lint:graphql` で code-lint の `code-lint-graphql` に検査させる。
 
 コンポーネントはフックを直接呼ばず、同じディレクトリの `service.ts` の `useService` から受け取った値と `handleXxx` を JSX に渡すだけにしている。
-TanStack Query の `useQuery`・`useMutation` も `useService` の中で呼ぶ。
+`useGraphQLQuery`・`useGraphQLMutation` も `useService` の中で呼ぶ。
 
 `typescript/no-floating-promises` を動かすため、`oxlint-tsgolint` を入れて `typeAware` を有効にしている。
 整形は `oxfmt.config.mts` で code-lint の `oxfmtrc.json` を読み込んで広げている。
@@ -363,14 +394,23 @@ export const spec = defineSpec("todo-add", {
 
 モックするのは API の境界だけで、MSW で差し替える。
 `mocks.ts` は `{ ... } satisfies Record<string, RequestHandler[]>` にし、値に関数を置かない。
-失敗するケースは、`src/mocks/handlers.ts` の `graphqlApi` に同じフィーチャーの `graphqls/` の操作を渡し、`errors` を返すハンドラーにする。
+失敗や読み込み中のように決まった応答を返すケースは、`src/mocks/graphql.ts` のヘルパーで、同じフィーチャーの `graphqls/` の操作から作る。
+curio の `@curio/testing-library` の `createMockQuery`・`createMockMutation`・`mockLoadingResolver` にならっている。
+
+| ヘルパー              | 作るもの                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| `createMockQuery`     | クエリに応答するハンドラー。resolver が返す `data` は、クエリの結果の型で検査される |
+| `createMockMutation`  | mutation に応答するハンドラー                                                       |
+| `mockErrorResolver`   | `errors` を返して、操作を失敗させる resolver                                        |
+| `mockLoadingResolver` | 応答を返さず、読み込み中のままにする resolver                                       |
 
 ```ts
 // src/features/todo-page/features/todo-add/mocks.ts
 export const TodoAddMocks = {
   Error: [
-    graphqlApi.mutation(CreateTodoMutation, () =>
-      HttpResponse.json({ errors: [{ message: "作成に失敗しました" }] }),
+    createMockMutation(
+      CreateTodoMutation,
+      mockErrorResolver("作成に失敗しました"),
     ),
   ],
   Success: createTodoHandlers(),
@@ -423,6 +463,7 @@ export const Success: Story = {
 
 - meta に `title` を書かない。ディレクトリから `features/todo-page/features/todo-list` のような名前が付く
 - API は `parameters.msw.handlers` に `mocks.ts` のケースを渡して差し替える。`.storybook/preview.tsx` が story ごとに MSW のハンドラーとメモリ上のストアを入れ替える
+- 読み込み中の表示は、`mockLoadingResolver` で応答を止めたケース（`TodoListMocks.Loading`）を渡して残す
 - QueryClient は `preview.tsx` のデコレーターが story ごとに作る。retry を切っているため、失敗系の表示もすぐに出る
 - 操作しないと出ない表示（送信に失敗した後のエラーなど）は、`play` でその状態まで進める。`play` は表示が出るまで待つだけにし、検証は仕様テストに任せる
 
