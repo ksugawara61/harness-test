@@ -14,7 +14,7 @@ describe("TodoPage", () => {
     given: {
       desc: "空の一覧で表示し、タイトルを入力しておく",
       run: async () => {
-        server.use(...TodoPageMocks.Empty);
+        server.use(...TodoPageMocks.Added);
         const { user } = renderFeature(<TodoPage />);
         await screen.findByText("やることはありません");
         await user.type(
@@ -43,7 +43,7 @@ describe("TodoPage", () => {
     given: {
       desc: "未完了のやることが 1 件ある一覧で表示する",
       run: async () => {
-        server.use(...TodoPageMocks.Success);
+        server.use(...TodoPageMocks.Completed);
         const { user } = renderFeature(<TodoPage />);
         await screen.findByText("残り 1 件");
         return { user };
@@ -66,7 +66,7 @@ describe("TodoPage", () => {
     given: {
       desc: "やることが 1 件ある一覧で表示する",
       run: async () => {
-        server.use(...TodoPageMocks.Success);
+        server.use(...TodoPageMocks.Deleted);
         const { user } = renderFeature(<TodoPage />);
         await screen.findByText("残り 1 件");
         return { user };

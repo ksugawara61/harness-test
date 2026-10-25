@@ -4,7 +4,7 @@ import { CreateTodoMutation } from "./graphqls/create-todo-mutation.ts";
 
 export const useService = () => {
   const [title, setTitle] = useState("");
-  const { isError, isPending, mutate } = useGraphQLMutation(
+  const { isError, isPending, mutateAsync } = useGraphQLMutation(
     CreateTodoMutation,
     { refetchTypes: ["Todo"] },
   );
@@ -16,16 +16,15 @@ export const useService = () => {
   };
 
   // 追加ボタンと、入力欄で Enter を押したときに呼ぶ
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit) return;
-    mutate(
-      { input: { title: trimmedTitle } },
-      {
-        onSuccess: () => {
-          setTitle("");
-        },
-      },
-    );
+    try {
+      await mutateAsync({ input: { title: trimmedTitle } });
+    } catch {
+      // 失敗は isError で表示し、入力したタイトルを残す
+      return;
+    }
+    setTitle("");
   };
 
   return {

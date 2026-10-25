@@ -76,10 +76,12 @@ export const useGraphQLMutation = <Result, Variables>(
   const queryClient = useQueryClient();
   const refetchTypes = options?.refetchTypes ?? [];
   return useMutation({
-    mutationFn: (variables: Variables) => gqlFetch(document, variables),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
+    mutationFn: async (variables: Variables) => {
+      const result = await gqlFetch(document, variables);
+      await queryClient.invalidateQueries({
         predicate: (query) => returnsAnyType(query, refetchTypes),
-      }),
+      });
+      return result;
+    },
   });
 };

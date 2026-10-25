@@ -4,41 +4,20 @@ import type { Todo } from "@/server/graphql/resolvers.generated.ts";
 import { graphqlApi } from "./graphql.ts";
 import { mockSchema } from "./schema.ts";
 
-const resetters = new Set<() => void>();
+const todos = new Map<string, Todo>();
 
-// createTodoHandlers で作ったすべてのストアを初期データに戻す。
-// mocks.ts のハンドラーはテストの間で共有されるため、テストごとに呼ぶ
-export const resetTodoStores = () => {
-  for (const reset of resetters) reset();
-};
-
-// 開発サーバー・テスト・story で使う、メモリ上に TODO を持つ GraphQL API。
+// EXPO_PUBLIC_API_MOCK=offline のとき、src/lib/api.ts の apiFetch が使う、メモリ上に TODO を持つ GraphQL API。
 // すべての操作を mockSchema で実行する。
-// 呼び出すたびに別のストアを作るため、ケースごとに初期データを分けられる
-export const createTodoHandlers = (
-  initialTodos: Todo[] = [],
-): RequestHandler[] => {
-  const todos = new Map<string, Todo>();
-  const reset = () => {
-    todos.clear();
-    for (const todo of initialTodos) todos.set(todo.id, todo);
-  };
-  reset();
-  resetters.add(reset);
-
-  return [
-    graphqlApi.operation(async ({ query, variables }) =>
-      HttpResponse.json(
-        await execute({
-          contextValue: { todos },
-          schema: mockSchema,
-          source: query,
-          variableValues: variables,
-        }),
-      ),
+// テストと story は、mocks.ts で操作ごとに決まった応答を返すハンドラーを使う
+export const handlers: RequestHandler[] = [
+  graphqlApi.operation(async ({ query, variables }) =>
+    HttpResponse.json(
+      await execute({
+        contextValue: { todos },
+        schema: mockSchema,
+        source: query,
+        variableValues: variables,
+      }),
     ),
-  ];
-};
-
-// EXPO_PUBLIC_API_MOCK=offline のとき、src/lib/api.ts の apiFetch が使う
-export const handlers = createTodoHandlers();
+  ),
+];
