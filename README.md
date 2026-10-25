@@ -13,7 +13,7 @@ pnpm install
 pnpm dev           # 開発サーバー（MSW の API に向く）
 pnpm storybook     # Storybook の開発サーバー（http://localhost:6006）
 pnpm test          # Vitest の仕様テスト・全 story の描画テストと、spec.ts の網羅の検査
-pnpm lint          # oxlint（型情報を使う検査を含む）と JSON のキー順
+pnpm lint          # oxlint（型情報を使う検査を含む）・JSON のキー順・dependency-cruiser の依存の検査
 pnpm typecheck     # tsc
 pnpm format        # oxfmt
 pnpm knip          # 未使用の export・依存の検出
@@ -35,6 +35,8 @@ src/
   mocks/handlers.ts      # メモリ上に TODO を持つ MSW のハンドラー（開発サーバー・テスト・story で共用）
   features/
     todo-page/           # 画面。追加フォームと一覧を並べる
+      shared/
+        todo-error/      # 閉じられるエラーの表示（共有フィーチャー）。todo-add と todo-item で使う
       features/
         todo-add/        # 追加フォーム
         todo-list/       # 一覧
@@ -60,6 +62,8 @@ export const Route = createFileRoute("/")({ component: TodoPage });
 ページの部品は、ロジックを持てば親の `features/<name>/` にサブフィーチャーとして、ロジックが無ければ親の `components/<name>.tsx` に置く。
 サブフィーチャーの中も同じ構成で、`todo-item` は `todo-list` のサブフィーチャーにしている。
 import は親から直下のサブフィーチャーへの向きだけにし、ページ同士・サブフィーチャー同士では import しない。
+複数のサブフィーチャーで使う部品は、使う側すべてに一番近い共通の親のフィーチャーの `shared/<name>/` に共有フィーチャーとして置く。
+共有フィーチャーの構成はサブフィーチャーと同じ。
 フィーチャーから `src/app/` や `route-tree.gen.ts` は import しない。
 
 ## import のパス
@@ -76,6 +80,23 @@ import { Alert } from "@/ui/alert/index.tsx"; // ui のレイヤーへは @/ で
 import { TodoItem } from "./features/todo-item/index.tsx"; // 同じフィーチャーの内側は相対パス
 ```
 
+共有フィーチャーは、一番近い親のフィーチャーの `shared/` から相対パスでだけ import する。
+`todo-add` と `todo-item` は、失敗したときに閉じられるエラーを出す `todo-error` を共通で使う。
+2 つに一番近い共通の親は `todo-page` のため、`todo-page/shared/todo-error/` に置いている。
+
+```ts
+// src/features/todo-page/features/todo-add/index.tsx
+import { TodoError } from "../../shared/todo-error/index.tsx";
+
+// src/features/todo-page/features/todo-list/features/todo-item/index.tsx
+import { TodoError } from "../../../../shared/todo-error/index.tsx";
+```
+
+`todo-list` に `shared/` を足すと、`todo-item` から一番近い `shared/` は `todo-list/shared/` になり、`todo-page/shared/` を import できなくなる。
+兄弟の `shared/`（`todo-add` から `todo-list/shared/`）や、features の外からの共有フィーチャーの import もできない。
+共有フィーチャーを `@/features/...` で import しても落ちる。
+この制約は、oxlint の `use-nearest-shared-import` と dependency-cruiser の両方で検査している（「依存の検査」を参照）。
+
 フィーチャー（サブフィーチャーを含む）のディレクトリには、次のファイルを置く。
 
 | ファイル      | 中身                                                                       |
@@ -91,20 +112,20 @@ import { TodoItem } from "./features/todo-item/index.tsx"; // 同じフィーチ
 
 `.oxlintrc.json` で code-lint の `oxlintrc.json` を `extends` し、規約のルールをパスごとに有効にしている。
 
-| 対象                                              | ルール                                                                               |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `src/app/**`                                      | `no-logic-in-routes`（`useParams`・`useSearch` だけ許す）                            |
-| `src/features/**/*.tsx`                           | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など  |
-| `src/features/**/index.tsx`                       | `no-multiple-feature-exports`                                                        |
-| `src/features/**/index.tsx`・`src/ui/*/index.tsx` | `use-stories-file`                                                                   |
-| `src/**/stories.tsx`                              | `no-storybook-title`                                                                 |
-| `src/features/**`                                 | `use-service-file-name`・`use-feature-directory`・`no-restricted-imports`（`@/app`） |
-| `src/features/**/components/**`                   | `no-logic-in-components`                                                             |
-| `src/features/**/service.ts`                      | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return` |
-| `src/features/**/mocks.ts`                        | `use-mocks-record`                                                                   |
-| `src/ui/**/*.tsx`                                 | `no-style-prop-in-ui`・`no-test-id`                                                  |
-| `src/**/test.tsx`                                 | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など           |
-| `src/**`                                          | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`       |
+| 対象                                              | ルール                                                                                                      |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `src/app/**`                                      | `no-logic-in-routes`（`useParams`・`useSearch` だけ許す）                                                   |
+| `src/features/**/*.tsx`                           | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など                         |
+| `src/features/**/index.tsx`                       | `no-multiple-feature-exports`                                                                               |
+| `src/features/**/index.tsx`・`src/ui/*/index.tsx` | `use-stories-file`                                                                                          |
+| `src/**/stories.tsx`                              | `no-storybook-title`                                                                                        |
+| `src/features/**`                                 | `use-service-file-name`・`use-feature-directory`・`no-restricted-imports`（`@/app`）                        |
+| `src/features/**/components/**`                   | `no-logic-in-components`                                                                                    |
+| `src/features/**/service.ts`                      | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return`                        |
+| `src/features/**/mocks.ts`                        | `use-mocks-record`                                                                                          |
+| `src/ui/**/*.tsx`                                 | `no-style-prop-in-ui`・`no-test-id`                                                                         |
+| `src/**/test.tsx`                                 | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など                                  |
+| `src/**`                                          | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`・`use-nearest-shared-import` |
 
 `src/route-tree.gen.ts` は生成物のため、oxlint・oxfmt・knip の対象から外している。
 `pnpm dev`・`pnpm build`・`pnpm test` のたびに vite プラグインが生成し直す。ルートを足したら、生成し直したファイルもコミットする。
@@ -114,6 +135,33 @@ TanStack Query の `useQuery`・`useMutation` も `useService` の中で呼ぶ�
 
 `typescript/no-floating-promises` を動かすため、`oxlint-tsgolint` を入れて `typeAware` を有効にしている。
 整形は `oxfmt.config.mts` で code-lint の `oxfmtrc.json` を読み込んで広げている。
+
+## 依存の検査
+
+`pnpm lint:deps`（`pnpm lint` からも呼ぶ）で、dependency-cruiser が `src/` の依存を検査する。
+`.dependency-cruiser.mjs` の `forbidden` には、harness の `@ksugawara61/code-lint/dependency-cruiser` の `sharedFeatureRules()` と、循環の検出（`no-circular`）を入れている。
+
+```js
+// .dependency-cruiser.mjs
+import { sharedFeatureRules } from "@ksugawara61/code-lint/dependency-cruiser";
+
+export default {
+  forbidden: [...sharedFeatureRules() /* , no-circular */],
+  options: {
+    parser: "swc",
+    tsConfig: { fileName: "tsconfig.json" } /* , ... */,
+  },
+};
+```
+
+| ルール名              | 報告すること                                                                                 |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| `shared-not-nearest`  | 共有フィーチャーを、import するモジュールから見て一番近い親の `shared/` 以外から import する |
+| `shared-not-relative` | 共有フィーチャーを `@/` のパスエイリアスで import する                                       |
+| `no-circular`         | 依存が循環する                                                                               |
+
+`sharedFeatureRules()` は設定を読むたびに `src/features/` の各フィーチャーの `shared/` の有無を見て、ルールを作り直す。
+TypeScript 7 は dependency-cruiser が使う TypeScript の API にまだ対応していないため、`parser: "swc"` で `@swc/core` に解析させている。
 
 ## 仕様テスト
 

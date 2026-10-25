@@ -16,7 +16,8 @@
           }
         ],
         "code-lint/no-cross-feature-import": "error",
-        "code-lint/no-relative-cross-boundary": "error"
+        "code-lint/no-relative-cross-boundary": "error",
+        "code-lint/use-nearest-shared-import": "error"
       }
     },
     {
@@ -121,6 +122,7 @@
     },
     {
       "files": [
+        ".dependency-cruiser.mjs",
         ".storybook/main.ts",
         ".storybook/preview.tsx",
         "oxfmt.config.mts",

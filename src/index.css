@@ -127,6 +127,18 @@ body {
   width: 100%;
 }
 
+.todo-error {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.todo-error .alert {
+  flex: 1;
+  width: auto;
+}
+
 .visually-hidden {
   clip: rect(0 0 0 0);
   height: 1px;

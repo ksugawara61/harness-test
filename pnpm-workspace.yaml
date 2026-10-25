@@ -1,4 +1,5 @@
-# esbuild の postinstall はバイナリの確認だけで、バイナリは optionalDependencies で入るため実行しない
+# esbuild と @swc/core の postinstall はバイナリの確認だけで、バイナリは optionalDependencies で入るため実行しない
 allowBuilds:
+  "@swc/core": false
   esbuild: false
 minimumReleaseAge: 4320

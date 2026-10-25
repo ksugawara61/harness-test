@@ -1,6 +1,6 @@
-import { Alert } from "@/ui/alert/index.tsx";
 import { Button } from "@/ui/button/index.tsx";
 import { TextField } from "@/ui/text-field/index.tsx";
+import { TodoError } from "../../shared/todo-error/index.tsx";
 import { useService } from "./service.ts";
 
 export const TodoAdd = () => {
@@ -29,7 +29,7 @@ export const TodoAdd = () => {
       <Button disabled={!canSubmit} type="submit">
         追加
       </Button>
-      {isError && <Alert>やることを追加できませんでした</Alert>}
+      {isError && <TodoError>やることを追加できませんでした</TodoError>}
     </form>
   );
 };
