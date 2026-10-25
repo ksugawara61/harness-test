@@ -20,7 +20,7 @@
       }
     },
     {
-      "files": ["src/apps/**"],
+      "files": ["src/app/**"],
       "rules": {
         "code-lint/no-logic-in-routes": [
           "error",
@@ -50,8 +50,8 @@
           {
             "patterns": [
               {
-                "group": ["@/apps", "@/apps/**", "@/route-tree.gen*"],
-                "message": "フィーチャーからルーティング（src/apps）を import しないでください。パスのパラメーターはルートのファイルで読み、ページに Props で渡します"
+                "group": ["@/app", "@/app/**", "@/route-tree.gen*"],
+                "message": "フィーチャーからルーティング（src/app）を import しないでください。パスのパラメーターはルートのファイルで読み、ページに Props で渡します"
               }
             ]
           }

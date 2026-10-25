@@ -6,12 +6,12 @@ import { msw } from "msw/vite";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  // ルーティングは src/apps のファイルで決め、ルートの木を src/route-tree.gen.ts に生成する。
+  // ルーティングは src/app のファイルで決め、ルートの木を src/route-tree.gen.ts に生成する。
   // react() より前に置く
   plugins: [
     tanstackRouter({
       generatedRouteTree: "./src/route-tree.gen.ts",
-      routesDirectory: "./src/apps",
+      routesDirectory: "./src/app",
       target: "react",
     }),
     react(),

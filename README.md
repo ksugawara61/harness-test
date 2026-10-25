@@ -26,12 +26,11 @@ pnpm build:storybook # storybook-static/ に Storybook を出力する
 ```text
 .storybook/              # Storybook の設定。preview で QueryClient と MSW を story ごとに用意する
 src/
-  main.tsx               # 入口。開発サーバーでは MSW を動かしてから描画する
-  app.tsx                # QueryClient と TanStack Router のルーターを用意する
-  apps/                  # ルーティング（TanStack Router の file-based routing）。ページを描画するだけ
+  main.tsx               # 入口。QueryClient と TanStack Router のルーターを用意し、開発サーバーでは MSW を動かしてから描画する
+  app/                   # ルーティング（TanStack Router の file-based routing）。ページを描画するだけ
     __root.tsx           # ルートのルート。子のルートを <Outlet /> で描画する
     index.tsx            # `/`。todo-page を描画する
-  route-tree.gen.ts      # src/apps から TanStack Router の vite プラグインが生成するルートの木（編集しない）
+  route-tree.gen.ts      # src/app から TanStack Router の vite プラグインが生成するルートの木（編集しない）
   api/todo.ts            # REST API の呼び出しと TanStack Query の queryOptions
   mocks/handlers.ts      # メモリ上に TODO を持つ MSW のハンドラー（開発サーバー・テスト・story で共用）
   features/
@@ -48,12 +47,12 @@ src/
   stories.test.tsx       # すべての stories.tsx の story を描画するテスト
 ```
 
-ルーティングは `src/apps/` に、画面の中身は `src/features/` に置き分ける。
-`src/apps/` のルートのファイルは、`src/features/` 直下のページを `component` に渡すだけにする。
+ルーティングは `src/app/` に、画面の中身は `src/features/` に置き分ける。
+`src/app/` のルートのファイルは、`src/features/` 直下のページを `component` に渡すだけにする。
 データの取得や状態などのロジックはルートのファイルに置かず、フィーチャーの `service.ts` に置く。
 
 ```tsx
-// src/apps/index.tsx
+// src/app/index.tsx
 export const Route = createFileRoute("/")({ component: TodoPage });
 ```
 
@@ -61,7 +60,7 @@ export const Route = createFileRoute("/")({ component: TodoPage });
 ページの部品は、ロジックを持てば親の `features/<name>/` にサブフィーチャーとして、ロジックが無ければ親の `components/<name>.tsx` に置く。
 サブフィーチャーの中も同じ構成で、`todo-item` は `todo-list` のサブフィーチャーにしている。
 import は親から直下のサブフィーチャーへの向きだけにし、ページ同士・サブフィーチャー同士では import しない。
-フィーチャーから `src/apps/` や `route-tree.gen.ts` は import しない。
+フィーチャーから `src/app/` や `route-tree.gen.ts` は import しない。
 
 ## import のパス
 
@@ -69,7 +68,7 @@ import は親から直下のサブフィーチャーへの向きだけにし、�
 Vitest と Storybook も `vite.config.ts` を読むため、同じエイリアスが効く。
 
 同じ単位の内側は相対パスで、単位を越えるときは `@/` で import する。
-単位は、`src/features/` 直下のフィーチャー（サブフィーチャーを含む）・`src/` 直下のディレクトリ（`apps`・`api`・`ui` など）・`src/` 直下のファイルの 3 種類。
+単位は、`src/features/` 直下のフィーチャー（サブフィーチャーを含む）・`src/` 直下のディレクトリ（`app`・`api`・`ui` など）・`src/` 直下のファイルの 3 種類。
 
 ```ts
 // src/features/todo-page/features/todo-list/index.tsx
@@ -92,20 +91,20 @@ import { TodoItem } from "./features/todo-item/index.tsx"; // 同じフィーチ
 
 `.oxlintrc.json` で code-lint の `oxlintrc.json` を `extends` し、規約のルールをパスごとに有効にしている。
 
-| 対象                                              | ルール                                                                                |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `src/apps/**`                                     | `no-logic-in-routes`（`useParams`・`useSearch` だけ許す）                             |
-| `src/features/**/*.tsx`                           | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など   |
-| `src/features/**/index.tsx`                       | `no-multiple-feature-exports`                                                         |
-| `src/features/**/index.tsx`・`src/ui/*/index.tsx` | `use-stories-file`                                                                    |
-| `src/**/stories.tsx`                              | `no-storybook-title`                                                                  |
-| `src/features/**`                                 | `use-service-file-name`・`use-feature-directory`・`no-restricted-imports`（`@/apps`） |
-| `src/features/**/components/**`                   | `no-logic-in-components`                                                              |
-| `src/features/**/service.ts`                      | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return`  |
-| `src/features/**/mocks.ts`                        | `use-mocks-record`                                                                    |
-| `src/ui/**/*.tsx`                                 | `no-style-prop-in-ui`・`no-test-id`                                                   |
-| `src/**/test.tsx`                                 | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など            |
-| `src/**`                                          | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`        |
+| 対象                                              | ルール                                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `src/app/**`                                      | `no-logic-in-routes`（`useParams`・`useSearch` だけ許す）                            |
+| `src/features/**/*.tsx`                           | `only-use-service-hooks`・`no-handler-in-component`・`no-inline-handler-logic` など  |
+| `src/features/**/index.tsx`                       | `no-multiple-feature-exports`                                                        |
+| `src/features/**/index.tsx`・`src/ui/*/index.tsx` | `use-stories-file`                                                                   |
+| `src/**/stories.tsx`                              | `no-storybook-title`                                                                 |
+| `src/features/**`                                 | `use-service-file-name`・`use-feature-directory`・`no-restricted-imports`（`@/app`） |
+| `src/features/**/components/**`                   | `no-logic-in-components`                                                             |
+| `src/features/**/service.ts`                      | `use-service-handle-only`・`no-raw-setter-return`・`no-router-in-use-service-return` |
+| `src/features/**/mocks.ts`                        | `use-mocks-record`                                                                   |
+| `src/ui/**/*.tsx`                                 | `no-style-prop-in-ui`・`no-test-id`                                                  |
+| `src/**/test.tsx`                                 | `no-raw-vitest-test`・`no-expect-in-given-when`・`no-waiting-in-when` など           |
+| `src/**`                                          | `max-lines`（300 行）・`no-cross-feature-import`・`no-relative-cross-boundary`       |
 
 `src/route-tree.gen.ts` は生成物のため、oxlint・oxfmt・knip の対象から外している。
 `pnpm dev`・`pnpm build`・`pnpm test` のたびに vite プラグインが生成し直す。ルートを足したら、生成し直したファイルもコミットする。
